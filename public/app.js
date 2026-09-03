@@ -1,6 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const state = {
   recommendations: new Map(),
+  confirmedRecommendations: new Map(),
   acceptedFacts: [],
   formDraft: new Map(),
   script: "",
@@ -23,7 +24,8 @@ async function initialize() {
     state.schedulerProfiles = Array.isArray(health.schedulerOptions) ? health.schedulerOptions : [];
     syncSchedulerOptions();
     $("#modeStatus").dataset.mode = health.mode;
-    $("#modeLabel").textContent = `${health.mode.toUpperCase()} | ${health.models.planner}`;
+    $("#modeLabel").textContent = health.mode === "mock" ? "MOCK | LOCAL FIXTURES" : `LIVE AIR | ${health.models.planner}`;
+    $("#mockModeNotice").hidden = health.mode !== "mock";
   } catch {
     $("#modeLabel").textContent = "Service unavailable";
   }
@@ -130,9 +132,11 @@ function renderIntake(payload, { scroll = false } = {}) {
   state.pendingAnswer = null;
   renderInterpretation(payload.analysis);
   const suggestedFields = new Set(payload.analysis.recommendations.map((item) => item.field));
-  const unresolvedFields = payload.analysis.missingFields.filter((field) => !suggestedFields.has(field));
+  const draftedFields = new Set(payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && hasFormValue(form.elements.namedItem(field))));
+  const unresolvedFields = payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && !draftedFields.has(field));
   const suggestedMessage = suggestedFields.size ? ` AIR prefilled editable suggestions for: ${[...suggestedFields].join(", ")}.` : "";
-  $("#missingFields").textContent = unresolvedFields.length ? `Still needs your input: ${unresolvedFields.join(", ")}.${suggestedMessage}` : `Every missing field has an AIR suggestion. Confirm or change each highlighted value before generation.`;
+  const draftedMessage = draftedFields.size ? ` Keeping your form values for: ${[...draftedFields].join(", ")}.` : "";
+  $("#missingFields").textContent = unresolvedFields.length ? `Still needs your input: ${unresolvedFields.join(", ")}.${suggestedMessage}${draftedMessage}` : `No blank required fields remain.${suggestedMessage}${draftedMessage}`;
   const container = $("#recommendations");
   container.replaceChildren();
   for (const recommendation of payload.analysis.recommendations) state.recommendations.set(recommendation.field, recommendation);
@@ -151,6 +155,11 @@ function renderIntake(payload, { scroll = false } = {}) {
     checkbox.type = "checkbox";
     checkbox.dataset.confirmField = recommendation.field;
     checkbox.setAttribute("aria-label", `Confirm ${recommendation.field}`);
+    checkbox.checked = state.confirmedRecommendations.get(recommendation.field) === recommendationKey(recommendation.value);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) state.confirmedRecommendations.set(recommendation.field, recommendationKey(recommendation.value));
+      else state.confirmedRecommendations.delete(recommendation.field);
+    });
     const identity = document.createElement("label");
     identity.className = "recommendation-identity";
     identity.append(checkbox);
@@ -166,6 +175,9 @@ function renderIntake(payload, { scroll = false } = {}) {
     details.append(summary, rationale, assumptions, tuning);
     item.append(identity, details);
     container.append(item);
+  }
+  for (const field of [...state.confirmedRecommendations.keys()]) {
+    if (!state.recommendations.has(field)) state.confirmedRecommendations.delete(field);
   }
   $("#confirmAllSuggestions").hidden = payload.analysis.recommendations.length === 0;
   const recommendationReview = payload.analysis.recommendationReview;
@@ -221,7 +233,11 @@ function optionElement(value, label) {
 function unique(values) { return [...new Set(values)].sort(); }
 
 $("#confirmAllSuggestions").addEventListener("click", () => {
-  document.querySelectorAll("[data-confirm-field]").forEach((checkbox) => { checkbox.checked = true; });
+  document.querySelectorAll("[data-confirm-field]").forEach((checkbox) => {
+    checkbox.checked = true;
+    const recommendation = state.recommendations.get(checkbox.dataset.confirmField);
+    if (recommendation) state.confirmedRecommendations.set(recommendation.field, recommendationKey(recommendation.value));
+  });
   $("#generationStatus").textContent = "AIR suggestions confirmed. You can still edit any field before generation.";
 });
 
@@ -302,6 +318,7 @@ function resetPlanningOutput() {
   $("#results").hidden = true;
   $("#emptyState").hidden = false;
   state.recommendations.clear();
+  state.confirmedRecommendations.clear();
   state.recommendationToken = null;
   state.acceptedFacts = [];
   state.formDraft.clear();
@@ -335,7 +352,10 @@ $("#specForm").addEventListener("input", (event) => {
   state.formDraft.set(input.name, input.value);
   const recommendation = state.recommendations.get(input.name);
   const checkbox = document.querySelector(`[data-confirm-field="${CSS.escape(input.name)}"]`);
-  if (recommendation && checkbox && !inputMatchesRecommendation(input, recommendation.value)) checkbox.checked = false;
+  if (recommendation && checkbox && !inputMatchesRecommendation(input, recommendation.value)) {
+    checkbox.checked = false;
+    state.confirmedRecommendations.delete(input.name);
+  }
 });
 
 function updateResourceEstimate() {
@@ -583,6 +603,8 @@ function renderList(container, items) {
 }
 function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
 function formatValue(value) { return Array.isArray(value) ? (value.length ? value.join(", ") : "none") : String(value); }
+function recommendationKey(value) { return JSON.stringify(value); }
+function hasFormValue(input) { return input && String(input.value).trim() !== ""; }
 function round(value) { return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0; }
 function inputMatchesRecommendation(input, recommendation) {
   if (Array.isArray(recommendation)) {

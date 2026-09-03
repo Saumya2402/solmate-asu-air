@@ -28,6 +28,7 @@ h1 { margin: 0; font-size: 29px; line-height: 1; letter-spacing: 0; }
 .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #aaa; }
 .status[data-mode="live"] .status-dot { background: #49c690; box-shadow: 0 0 0 4px rgb(73 198 144 / 18%); }
 .status[data-mode="mock"] .status-dot { background: var(--gold); }
+.mode-notice { border-left: 3px solid var(--gold); padding: 8px 10px; background: #fff8df; color: #5f4700; font-size: .85rem; }
 .tabs { height: 52px; display: flex; align-items: end; gap: 24px; padding: 0 clamp(20px, 4vw, 64px); background: white; border-bottom: 1px solid var(--line); }
 .tab { height: 52px; padding: 0 2px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-weight: 750; }
 .tab.active { color: var(--maroon); border-bottom-color: var(--maroon); }

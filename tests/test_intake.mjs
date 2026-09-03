@@ -87,6 +87,15 @@ Additional detail from the researcher: path is /scratch/asurite/sparky and the j
   );
 });
 
+test("OpenFOAM parallel CPU language and file location map to Slurm semantics", () => {
+  const description = "I want to run an OpenFoam simulation on Sol with 32gb memory and 16 cpus for a parallel run. I need to use the file in /scratch/asurite/sparky. The mesh is 500,000 cells.";
+  const result = normalizeExplicitFacts(description, {}, "simulation");
+  assert.equal(result.workingDirectory, "/scratch/asurite/sparky");
+  assert.equal(result.memoryGb, 32);
+  assert.equal(result.tasks, 16);
+  assert.equal(result.cpus, 1);
+});
+
 test("later conversational values override earlier explicit values", () => {
   const result = normalizeExplicitFacts("Use one CPU and name the job first. Additional detail: actually use 4 CPUs and the job name should be final.", {}, "general");
   assert.equal(result.cpus, 4);

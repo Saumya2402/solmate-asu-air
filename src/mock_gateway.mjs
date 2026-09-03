@@ -20,6 +20,7 @@ export class MockGateway {
         ...correction(prompt, /\bOpenFom\b/i, "OpenFOAM", "software"),
         ...correction(prompt, /\bsimualtion\b/i, "simulation", "language"),
         ...correction(prompt, /\bPytroch\b/i, "PyTorch", "software"),
+        ...correction(prompt, /\bPimplefoam\b/, "pimpleFoam", "identifier", true),
       ];
       return { ...metadata, content: JSON.stringify({ corrections }) };
     }
@@ -30,7 +31,7 @@ export class MockGateway {
       const explicitName = description.match(/\b(?:job\s+name\s+(?:should\s+be|is|=|:)|name\s+(?:the\s+)?job(?:\s+as)?|as\s+(?:the\s+)?job)\s+["']?([A-Za-z0-9][A-Za-z0-9._-]{0,63})/i)?.[1];
       const jobName = /open\s*foam|[A-Za-z]+Foam/i.test(description) ? "openfoam-job" : "research-job";
       const profile = input.supportedSchedulerProfiles?.find((item) => item.cluster === cluster && item.partition === "public" && item.qos === "public");
-      const parallelOpenFoam = /open\s*foam|[A-Za-z]+Foam/i.test(description) && /mpi|ranks?|tasks?|n\s*=\s*[2-9]/i.test(description);
+      const parallelOpenFoam = /(?:open\s*foam|[A-Za-z]+Foam)/i.test(description) && /mpi|parallel|ranks?|tasks?|n\s*=\s*[2-9]/i.test(description);
       const recommendation = (field, value, rationale, tuningAdvice) => ({ field, value, rationale, uncertainty: "low", assumptions: ["This is an editable starting value."], tuningAdvice });
       const recommendations = [
         ...(!explicitName ? [recommendation("jobName", jobName, "AIR derived a safe descriptive label from the detected workload.", "Rename it if your project uses another naming convention.")] : []),
@@ -63,6 +64,7 @@ export class MockGateway {
         ...correction(prompt, /\bOpenFom\b/i, "OpenFOAM", "software"),
         ...correction(prompt, /\bsimualtion\b/i, "simulation", "language"),
         ...correction(prompt, /\bPytroch\b/i, "PyTorch", "software"),
+        ...correction(prompt, /\bPimplefoam\b/, "pimpleFoam", "identifier", true),
       ];
       return { ...metadata, content: JSON.stringify({
         workloadType: simulation ? "simulation" : ml ? "ml_training" : distributed ? "distributed" : "general",
@@ -121,7 +123,7 @@ export class MockGateway {
   }
 }
 
-function correction(text, pattern, suggested, category) {
+function correction(text, pattern, suggested, category, requiresConfirmation = false) {
   const original = text.match(pattern)?.[0];
-  return original ? [{ original, suggested, category, confidence: "high", requiresConfirmation: false }] : [];
+  return original ? [{ original, suggested, category, confidence: "high", requiresConfirmation }] : [];
 }

@@ -33,6 +33,13 @@ test("UI cancels superseded intake requests", () => {
   assert.match(app, /signal: controller\.signal/);
 });
 
+test("UI distinguishes mock mode and retains unchanged user decisions", () => {
+  assert.match(html, /id="mockModeNotice"/);
+  assert.match(app, /MOCK \| LOCAL FIXTURES/);
+  assert.match(app, /confirmedRecommendations/);
+  assert.match(app, /Keeping your form values/);
+});
+
 test("newcomer tools use compact recommendations and task tabs", () => {
   for (const tab of ["script", "explain", "check", "run"]) assert.match(html, new RegExp(`data-output-tab="${tab}"`));
   for (const id of ["correctionBar", "resourceEstimate", "scriptExplanations", "readinessChecks", "firstRunPlan"]) assert.match(html, new RegExp(`id="${id}"`));

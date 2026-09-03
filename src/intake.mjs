@@ -165,6 +165,12 @@ function quoteSupportsWalltime(value, quote) {
 }
 
 function quoteSupportsNumericValue(field, value, quote) {
+  const parallelCpu = quote.match(/\b(\d[\d,]*)\s*cpus?\b[^.\n]{0,80}\b(?:for\s+)?(?:a\s+)?parallel(?:\s+run)?\b/i);
+  if (parallelCpu) {
+    const totalCpus = Number(parallelCpu[1].replaceAll(",", ""));
+    if (field === "tasks" && value === totalCpus) return true;
+    if (field === "cpus" && value === 1) return true;
+  }
   const fieldPatterns = {
     cpus: /(?:\b(?:no|a|an|single|zero|one|two|three|four|five|six|seven|eight|nine|ten|\d[\d,]*)\s*(?:cpus?|cpu\s+cores?|cores?)\b|\b(?:cpus?|cpu\s+cores?|cores?)\s*(?:is|are|=|:)?\s*(?:no|a|an|single|zero|one|two|three|four|five|six|seven|eight|nine|ten|\d[\d,]*))/gi,
     gpus: /(?:\b(?:no|a|an|single|zero|one|two|three|four|five|six|seven|eight|nine|ten|\d[\d,]*)\s*gpus?\b|\bgpus?\s*(?:is|are|=|:)?\s*(?:no|a|an|single|zero|one|two|three|four|five|six|seven|eight|nine|ten|\d[\d,]*))/gi,
@@ -196,13 +202,13 @@ function factQuoteSupportsField(field, quote) {
   const cues = {
     cluster: /\b(?:sol|phoenix|cluster)\b/i,
     jobName: /\b(?:job\s*name|job\s+(?:should\s+be\s+)?(?:called|named)|name\s+(?:the\s+)?job|call\s+(?:it|this\s+job|the\s+job)|as\s+(?:the\s+)?job)\b/i,
-    workingDirectory: /\b(?:working\s+directory|work\s+directory|case\s+(?:directory|path)|path|run\s+from)\b/i,
+    workingDirectory: /\b(?:working\s+directory|work\s+directory|case\s+(?:directory|path)|path|run\s+from|(?:use|using)\s+(?:the\s+)?(?:file|files|case)\s+in)\b/i,
     cpus: /(?:cpus?|cpu\s+cores?|cores?)/i,
     gpus: /gpus?/i,
     memoryGb: /\b(?:memory|ram|gb|gib)\b/i,
     walltime: /\b(?:walltime|run\s*time|runtime|hours?|minutes?)\b/i,
     nodes: /\bnodes?\b/i,
-    tasks: /\b(?:mpi|ranks?|tasks?|processes?)\b/i,
+    tasks: /\b(?:mpi|parallel|ranks?|tasks?|processes?)\b/i,
     software: /\b(?:software|open\s*foam|[A-Za-z]+Foam|pytorch|python|matlab|r)\b/i,
     executable: /\b(?:executable|command|run|launch)\b/i,
     modules: /\bmodules?\b/i,
@@ -231,6 +237,7 @@ export function normalizeExplicitFacts(description, extracted = {}, workloadType
   const workingDirectory = lastCaptured(text, [
     /\b(?:working\s+directory|work\s+directory|case\s+directory|case\s+path|path)\s*(?:should\s+be|is|=|:)?\s*["']?(\/[A-Za-z0-9._~\/-]+)/gi,
     /\brun\s+from\s+["']?(\/[A-Za-z0-9._~\/-]+)/gi,
+    /\b(?:use|using)\s+(?:the\s+)?(?:file|files|case)\s+in\s+["']?(\/[A-Za-z0-9._~\/-]+)/gi,
   ]);
   if (workingDirectory) result.workingDirectory = workingDirectory.value.replace(/[.,;]+$/, "");
   const cpu = lastCaptured(text, [new RegExp(`\\b(${COUNT_TOKEN})\\s*(?:cpu|cpus|cpu cores?|cores?)\\b`, "gi")]);
@@ -249,9 +256,35 @@ export function normalizeExplicitFacts(description, extracted = {}, workloadType
     new RegExp(`\\b(${COUNT_TOKEN})\\s*(?:mpi\\s*)?(?:ranks?|tasks?|processes?)\\b`, "gi"),
   ]);
   if (tasks) result.tasks = countValue(tasks.value);
+  const parallelCpuIntent = /\bopen\s*foam\b|\b(?:simple|pimple|ico|rho|inter|buoyant)[A-Za-z]*foam\b/i.test(text)
+    ? lastCaptured(text, [new RegExp(`\\b(${COUNT_TOKEN})\\s*cpus?\\b[^.\\n]{0,80}\\b(?:for\\s+)?(?:a\\s+)?parallel(?:\\s+run)?\\b`, "gi")])
+    : null;
+  if (parallelCpuIntent && !tasks) {
+    result.tasks = countValue(parallelCpuIntent.value);
+    result.cpus = 1;
+  }
   const nodes = lastCaptured(text, [new RegExp(`\\b(${COUNT_TOKEN})\\s*(?:nodes?|compute nodes?)\\b`, "gi")]);
   if (nodes) result.nodes = countValue(nodes.value);
   return result;
+}
+
+const OPENFOAM_SOLVERS = Object.freeze(new Map([
+  ["simplefoam", "simpleFoam"],
+  ["pimplefoam", "pimpleFoam"],
+  ["icofoam", "icoFoam"],
+  ["rhopimplefoam", "rhoPimpleFoam"],
+  ["interfoam", "interFoam"],
+  ["buoyantpimplefoam", "buoyantPimpleFoam"],
+]));
+
+export function extractOpenFoamSolver(description) {
+  const text = String(description || "");
+  let latest = null;
+  for (const match of text.matchAll(/\b(?:simple|pimple|ico|rhoPimple|inter|buoyantPimple)Foam\b/gi)) {
+    const value = OPENFOAM_SOLVERS.get(match[0].toLowerCase());
+    if (value) latest = { index: match.index, quote: match[0], value };
+  }
+  return latest;
 }
 
 export function extractExplicitJobName(description) {

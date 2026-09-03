@@ -75,6 +75,39 @@ test("OpenFOAM follow-up advances to a GPU compatibility decision after solver a
   assert.ok(result.analysis.domainQuestions.every((item) => !/which.*solver|mesh.*cells/i.test(item)));
 });
 
+test("reported OpenFOAM prompt retains path and maps parallel CPUs to ranks", async () => {
+  const description = "I want to run an OpenFoam simulation on Sol with 32gb memory and 16 cpus for a parallel run. I need to use the file in /scratch/asurite/sparky. The mesh is 500,000 cells. Additional detail from the researcher: Pimplefoam";
+  const harness = new AgentHarness({ gateway: new MockGateway(), schedulerProfiles: [{ cluster: "sol", partition: "public", qos: "public", limits: { walltimeHours: 168 } }] });
+  const first = await harness.intake(description);
+  assert.equal(first.analysis.extracted.workingDirectory, "/scratch/asurite/sparky");
+  assert.equal(first.analysis.extracted.cpus, 1);
+  assert.equal(first.analysis.extracted.tasks, 16);
+  assert.equal(first.analysis.missingFields.includes("workingDirectory"), false);
+  assert.equal(first.analysis.recommendations.find((item) => item.field === "executable")?.value, "pimpleFoam");
+  assert.deepEqual(first.analysis.recommendations.find((item) => item.field === "args")?.value, ["-parallel"]);
+  assert.equal(first.analysis.recommendations.find((item) => item.field === "nodes")?.value, 1);
+  assert.ok(first.analysis.corrections.some((item) => item.original === "Pimplefoam" && item.suggested === "pimpleFoam" && item.requiresConfirmation));
+
+  const priorFacts = first.analysis.extractedEvidence.map(({ field, quote }) => ({ field, quote, value: first.analysis.extracted[field] }));
+  const second = await harness.intake(`${description}\n\nAdditional detail from the researcher: run for 2 hours.`, { priorFacts });
+  assert.equal(second.analysis.extracted.workingDirectory, "/scratch/asurite/sparky");
+  assert.equal(second.analysis.extracted.cpus, 1);
+  assert.equal(second.analysis.extracted.tasks, 16);
+  assert.equal(second.analysis.extracted.walltime, "02:00:00");
+});
+
+test("serial OpenFOAM language does not acquire a parallel flag", async () => {
+  const result = await new AgentHarness({ gateway: new MockGateway() }).intake("Run a serial pimpleFoam case on Sol with 1 CPU and 32 GB memory for 2 hours.");
+  assert.doesNotMatch(JSON.stringify(result.analysis.recommendations.find((item) => item.field === "args")?.value || []), /-parallel/);
+  assert.equal(result.analysis.extracted.tasks, undefined);
+});
+
+test("total CPUs are divided across explicit MPI ranks", async () => {
+  const result = await new AgentHarness({ gateway: new MockGateway() }).intake("Run pimpleFoam on Sol with 16 total CPUs and MPI n=8 for 2 hours using 32 GB memory.");
+  assert.equal(result.analysis.extracted.tasks, 8);
+  assert.equal(result.analysis.extracted.cpus, 2);
+});
+
 test("verified facts survive a later partial AIR extraction and newer facts are added", async () => {
   let extractorCalls = 0;
   const gateway = { async chat({ messages }) {
@@ -161,7 +194,7 @@ test("completion advisor cannot invent an unavailable module name", async () => 
   assert.equal(analysis.recommendations.some((item) => item.field === "modules" && item.value.includes("pytorch")), false);
 });
 
-test("a valid scheduler recommendation survives a follow-up advisor omission and critic outage", async () => {
+test("a valid scheduler recommendation survives a follow-up advisor omission without resource review", async () => {
   const schedulerProfiles = [{ id: "sol-public-public", cluster: "sol", partition: "public", qos: "public", limits: { walltimeHours: 168 } }];
   const gateway = { async chat({ messages }) {
     const system = messages[0].content;
@@ -177,7 +210,30 @@ test("a valid scheduler recommendation survives a follow-up advisor omission and
   });
   const scheduler = Object.fromEntries(result.analysis.recommendations.map((item) => [item.field, item.value]));
   assert.deepEqual(scheduler, { partition: "public", qos: "public" });
-  assert.equal(result.analysis.recommendationReview.verdict, "unavailable");
+  assert.equal(result.analysis.recommendationReview, undefined);
+  assert.equal(result.agents.some((agent) => agent.role === "resource_critic"), false);
+});
+
+test("validated completion suggestions survive a follow-up omission and critic outage", async () => {
+  const gateway = { async chat({ messages }) {
+    const system = messages[0].content;
+    if (system.includes("fact extractor")) return { model: "test", content: JSON.stringify({ facts: [{ field: "cluster", value: "sol", quote: "Sol" }] }) };
+    if (system.includes("typo reviewer")) return { model: "test", content: JSON.stringify({ corrections: [] }) };
+    if (system.includes("completion advisor")) return { model: "test", content: JSON.stringify({ suggestions: {}, reasons: {} }) };
+    if (system.includes("scheduler-profile selector")) return { model: "test", content: JSON.stringify({ partition: null, qos: null, reason: "No profile returned." }) };
+    if (system.includes("job-recommendation critic")) return { model: "test", content: JSON.stringify({ invalid: true }) };
+    return { model: "test", content: JSON.stringify({ workloadType: "simulation", software: "OpenFOAM", workflowSummary: "Run an OpenFOAM case on Sol.", recommendationBasis: "More runtime evidence is needed.", corrections: [], nextQuestion: null, extracted: {}, extractedEvidence: [], missingFields: [], recommendations: [], domainQuestions: [], detectedConflicts: [] }) };
+  } };
+  const result = await new AgentHarness({ gateway, schedulerProfiles: [{ cluster: "sol", partition: "public", qos: "public" }] }).intake(
+    "Run an OpenFOAM case on Sol. Additional detail from the researcher: keep the same setup.",
+    { priorRecommendations: { jobName: "openfoam-job", outputPath: "%x.%j.out", errorPath: "%x.%j.err", modules: [], args: [] } },
+  );
+  const values = Object.fromEntries(result.analysis.recommendations.map((item) => [item.field, item.value]));
+  assert.equal(values.jobName, "openfoam-job");
+  assert.equal(values.outputPath, "%x.%j.out");
+  assert.equal(values.errorPath, "%x.%j.err");
+  assert.deepEqual(values.modules, []);
+  assert.deepEqual(values.args, []);
 });
 
 test("resource critic withholds a recommendation built on contradictory assumptions", async () => {
@@ -192,7 +248,8 @@ test("resource critic withholds a recommendation built on contradictory assumpti
     return { model: "critic-test", content: JSON.stringify({ verdict: "revise", reviews: [{ field: "memoryGb", decision: "reject", reason: "simpleFoam is steady-state, so the transient assumption is unsupported." }], findings: ["The memory recommendation was withheld."], profilingProfile: "none" }) };
   } };
   const result = await new AgentHarness({ gateway }).intake("Run simpleFoam with 2 million cells on Sol.");
-  assert.deepEqual(result.analysis.recommendations, []);
+  assert.equal(result.analysis.recommendations.some((item) => item.field === "memoryGb"), false);
+  assert.equal(result.analysis.recommendations.find((item) => item.field === "executable")?.value, "simpleFoam");
   assert.equal(result.analysis.recommendationReview.verdict, "revise");
   assert.ok(result.agents.some((agent) => agent.role === "resource_critic"));
 });
@@ -209,7 +266,7 @@ test("resource critic can replace a rejected guess with a bounded profiling reco
     return { model: "critic-test", content: JSON.stringify({ verdict: "revise", reviews: [{ field: "memoryGb", decision: "reject", reason: "The transient assumption contradicts simpleFoam." }], findings: ["Replaced an unsupported estimate with a profiling profile."], profilingProfile: "openfoam_medium" }) };
   } };
   const result = await new AgentHarness({ gateway }).intake("Run simpleFoam with 2 million cells on Sol.");
-  assert.equal(result.analysis.recommendations[0].value, 16);
+  assert.equal(result.analysis.recommendations.find((item) => item.field === "memoryGb")?.value, 16);
 });
 
 test("resource critic retries once when its review schema is incomplete", async () => {

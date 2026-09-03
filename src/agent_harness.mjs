@@ -1,5 +1,5 @@
 import { applyRepairPatch, extractJsonObject, isExactRenderedScript, renderSlurmScript, validateJobSpec, walltimeHours } from "./job_spec.mjs";
-import { extractExplicitJobName, extractExplicitWalltime, missingFields, normalizeAirFacts, normalizeIntakeAnalysis, validateCorrections, validateIntakeAnalysis } from "./intake.mjs";
+import { extractExplicitJobName, extractExplicitWalltime, extractOpenFoamSolver, missingFields, normalizeAirFacts, normalizeExplicitFacts, normalizeIntakeAnalysis, validateCorrections, validateIntakeAnalysis } from "./intake.mjs";
 import { diagnosisFromDeterministicFindings, deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
 import { schedulerProfileFor } from "./knowledge.mjs";
 import { beginnerWarnings, buildReadinessChecks, deterministicScriptExplanations, firstRunPlan, resourceMetrics, validateScriptExplanations } from "./newcomer_guidance.mjs";
@@ -24,7 +24,7 @@ Use null for unknown values and never convert a recommendation into an extracted
 Act like an HPC consultant. Choose nextQuestion by information gain: ask for the one answer that most changes resource sizing or execution strategy. When enough evidence exists, recommend the best defensible starting values for every missing resource field among cpus, gpus, memoryGb, and walltime. Each rationale must connect workload details to the value; assumptions must be explicit; tuningAdvice must say what first-run measurement, such as MaxRSS, elapsed time, scaling, or GPU utilization, should change the next request. If evidence is weak, recommend a small profiling run rather than pretending to know an optimum. Do not recommend partition, QoS, module names, paths, or commands without verified cluster-specific evidence. Never silently assume values or invent ASU policy.`;
 export const FACT_EXTRACTOR_SYSTEM = `You are the ASU AIR real-time workload fact extractor. Return one compact JSON object only: {"facts":[{"field":"...","value":...,"quote":"exact user words"}]}. Extract all explicitly supplied facts using these field names: cluster, jobName, workingDirectory, cpus, gpus, memoryGb, walltime, partition, qos, outputPath, errorPath, modules, executable, args, epochs, nodes, tasks, software. Every quote must be a minimal verbatim substring of the user text.
 
-Interpret ordinary language: articles such as "a CPU" mean numeric value 1; canonicalize stated durations to HHH:MM:SS; job-name paraphrases such as "the job name should be X", "job called X", "job named X", "call this job X", "use X as the job name", or "as job X" identify jobName; a stated absolute Linux path supplied as a case or working location identifies workingDirectory; and "MPI n=16" identifies 16 tasks or ranks, not 16 cpus per task. The cpus field always means CPUs per task. When the researcher requests 16 total CPUs and MPI n=16, return tasks=16 and cpus=1, citing the phrase containing both quantities. "general Sol cluster" identifies cluster=sol but does not identify a partition. Keep job names and path components separate: never combine a job name such as "of13" with a directory basename such as "sparky". Re-read the complete transcript and return every currently applicable explicit fact. If the user corrects a value later, return only the latest value. Do not infer nodes, partition, QoS, files, modules, or resource quantities that the user did not state.`;
+Interpret ordinary language: articles such as "a CPU" mean numeric value 1; canonicalize stated durations to HHH:MM:SS; job-name paraphrases such as "the job name should be X", "job called X", "job named X", "call this job X", "use X as the job name", or "as job X" identify jobName; a stated absolute Linux path supplied as a case or working location identifies workingDirectory; and "MPI n=16" identifies 16 tasks or ranks, not 16 cpus per task. The cpus field always means CPUs per task. When a total CPU count and MPI rank count are given, divide total CPUs by ranks for cpus and return the rank count as tasks. For an OpenFOAM request phrased as "16 CPUs for a parallel run" with no per-task wording, return tasks=16 and cpus=1. Cite the exact phrase supporting both fields. "general Sol cluster" identifies cluster=sol but does not identify a partition. Keep job names and path components separate: never combine a job name such as "of13" with a directory basename such as "sparky". Re-read the complete transcript and return every currently applicable explicit fact. If the user corrects a value later, return only the latest value. Do not infer nodes, partition, QoS, files, modules, or resource quantities that the user did not state.`;
 const FACT_AUDITOR_SYSTEM = `${FACT_EXTRACTOR_SYSTEM}
 Act as an independent completeness auditor. Pay special attention to facts another extractor often misses: singular articles ("a CPU", "a GPU"), zero resources, standalone paths, job-name corrections, cluster wording, and MPI ranks. Return the same facts schema and no commentary.`;
 export const TYPO_REVIEWER_SYSTEM = `You are the ASU AIR typo reviewer for a scientific-computing request. Return one compact JSON object only: {"corrections":[{"original":"exact user substring","suggested":"correct spelling","category":"language|software|identifier","confidence":"low|medium|high","requiresConfirmation":false}]}. Detect likely spelling mistakes in ordinary language and research software names, including omitted letters. Use category identifier and requiresConfirmation=true for any job name, path, module, partition, QoS, account, executable, filename, or command argument. Never rewrite an identifier silently. Ignore grammar/style preferences, do not change capitalization alone, and do not alter the established names Sol, Phoenix, Slurm, ASU, or AIR. Return at most six genuine corrections. Examples: OpenFom -> OpenFOAM as software; simualtion -> simulation as language. The original must be copied exactly from the user text.`;
@@ -43,6 +43,7 @@ const PROFILING_PROFILES = Object.freeze({
   openfoam_large: { cpus: 16, gpus: 0, memoryGb: 32, walltime: "01:00:00" },
 });
 export const DIAGNOSIS_SYSTEM = `You are an ASU AIR Slurm diagnostician. Return one JSON object only with category, confidence (confirmed, probable, or inconclusive), ruleId, evidence (array using exact 1-based log lineNumber and text, or source metadata with field and text), explanation, alternatives (string array), missingEvidence (string array), recommendations (string array), and patch (object or null). Cite only supplied evidence and applicable rule IDs. Use category UNKNOWN and ruleId null when no supplied rule is supported. A rule marked requiresCorroboration cannot be confirmed unless the supplied deterministic finding is confirmed. Invalid feature specification is ambiguous. Never claim exit code alone proves root cause.`;
+const RESOURCE_RECOMMENDATION_FIELDS = new Set(["cpus", "gpus", "memoryGb", "walltime", "nodes", "tasks", "epochs"]);
 const JSON_REPAIR_SYSTEM = "Return only a valid JSON object preserving the supplied meaning. Do not add facts.";
 
 export class AgentHarness {
@@ -97,6 +98,12 @@ export class AgentHarness {
       try { auditedAirFacts = normalizeAirFacts(normalized, await this.#parse(factAuditResponse, "factAuditor", signal)); } catch { factAuditResponse = null; }
     }
     const airFacts = mergeAirFacts(mergeAirFacts(previousAirFacts, currentAirFacts), auditedAirFacts);
+    const deterministicFacts = normalizeExplicitFacts(normalized, {}, analysis.workloadType);
+    for (const [field, value] of Object.entries(deterministicFacts)) {
+      if (field === "workloadType") continue;
+      airFacts.extracted[field] = value;
+      if (!airFacts.evidence.some((item) => item.field === field)) airFacts.evidence.push({ field, quote: normalized });
+    }
     const explicitJobName = extractExplicitJobName(normalized);
     if (explicitJobName) {
       airFacts.extracted.jobName = explicitJobName.value;
@@ -118,7 +125,7 @@ export class AgentHarness {
     let completionRecommendations = [];
     if (completionResponse) {
       try {
-        completionRecommendations = validateCompletionRecommendations(await this.#parse(completionResponse, "completion", signal), analysis.extracted, this.schedulerProfiles);
+        completionRecommendations = validateCompletionRecommendations(await this.#parse(completionResponse, "completion", signal), analysis.extracted, this.schedulerProfiles, normalized);
         const recommendationsByField = new Map(analysis.recommendations.map((item) => [item.field, item]));
         for (const item of completionRecommendations) recommendationsByField.set(item.field, item);
         analysis.recommendations = [...recommendationsByField.values()];
@@ -133,6 +140,7 @@ export class AgentHarness {
         completionRecommendations = validateSchedulerRecommendationPair([...completionRecommendations.filter((item) => !["partition", "qos"].includes(item.field)), ...schedulerRecommendations], analysis.extracted, this.schedulerProfiles);
       } catch { schedulerResponse = null; }
     }
+    analysis.recommendations = carryForwardCompletionRecommendations(analysis.recommendations, priorRecommendations, analysis.extracted, this.schedulerProfiles, normalized);
     analysis.recommendations = carryForwardSchedulerRecommendations(analysis.recommendations, priorRecommendations, analysis.extracted, this.schedulerProfiles);
     analysis.recommendations = analysis.recommendations.filter((item) => analysis.missingFields.includes(item.field));
     const agents = [agentMetadata("extractor", factResponse)];
@@ -141,36 +149,33 @@ export class AgentHarness {
     if (completionResponse) agents.push(agentMetadata("completion_advisor", completionResponse));
     if (schedulerResponse) agents.push(agentMetadata("scheduler_advisor", schedulerResponse));
     agents.push(agentMetadata("planner", response));
-    if (analysis.recommendations.length) {
+    const resourceRecommendations = analysis.recommendations.filter((item) => RESOURCE_RECOMMENDATION_FIELDS.has(item.field));
+    const conventionRecommendations = analysis.recommendations.filter((item) => !RESOURCE_RECOMMENDATION_FIELDS.has(item.field));
+    if (resourceRecommendations.length) {
       try {
-        const criticInput = JSON.stringify({ workload: normalized, software: analysis.software, workflowSummary: analysis.workflowSummary, supportedSchedulerProfiles: this.schedulerProfiles, recommendations: analysis.recommendations });
+        const criticInput = JSON.stringify({ workload: normalized, software: analysis.software, workflowSummary: analysis.workflowSummary, supportedSchedulerProfiles: this.schedulerProfiles, recommendations: resourceRecommendations });
         let criticResponse = await this.gateway.chat({ model: this.models.critic, temperature: 0, maxTokens: 1400, signal, messages: [{ role: "system", content: RESOURCE_CRITIC_SYSTEM }, { role: "user", content: criticInput }] });
         let recommendationReview;
         try {
-          recommendationReview = validateResourceReview(await this.#parse(criticResponse, "critic", signal), analysis.recommendations);
+          recommendationReview = validateResourceReview(await this.#parse(criticResponse, "critic", signal), resourceRecommendations);
         } catch {
-          const fields = analysis.recommendations.map((item) => item.field).join(", ");
+          const fields = resourceRecommendations.map((item) => item.field).join(", ");
           criticResponse = await this.gateway.chat({ model: this.models.critic, temperature: 0, maxTokens: 1800, signal, messages: [{ role: "system", content: `${RESOURCE_CRITIC_SYSTEM}\nThe previous response violated the schema. Return exactly one reviews item for each of these fields: ${fields}.` }, { role: "user", content: criticInput }] });
-          recommendationReview = validateResourceReview(await this.#parse(criticResponse, "critic", signal), analysis.recommendations);
+          recommendationReview = validateResourceReview(await this.#parse(criticResponse, "critic", signal), resourceRecommendations);
         }
-        const original = new Map(analysis.recommendations.map((item) => [item.field, item]));
+        const original = new Map(resourceRecommendations.map((item) => [item.field, item]));
         const profile = PROFILING_PROFILES[recommendationReview.profilingProfile];
-        analysis.recommendations = recommendationReview.reviews.flatMap((item) => {
+        const reviewedResources = recommendationReview.reviews.flatMap((item) => {
           if (item.decision === "approve") return [original.get(item.field)];
           if (!profile || !(item.field in profile)) return [];
           return [{ field: item.field, value: profile[item.field], rationale: `${recommendationReview.profilingProfile.replaceAll("_", " ")} supplies a bounded first measurement instead of an unsupported production estimate.`, uncertainty: "high", assumptions: ["This is a short profiling run, not a production allocation."], tuningAdvice: tuningAdviceFor(item.field) }];
         });
-        analysis.recommendations = validateSchedulerRecommendationPair(analysis.recommendations, analysis.extracted, this.schedulerProfiles);
+        analysis.recommendations = validateSchedulerRecommendationPair([...conventionRecommendations, ...reviewedResources], analysis.extracted, this.schedulerProfiles);
         analysis.recommendationReview = recommendationReview;
         agents.push(agentMetadata("resource_critic", criticResponse));
       } catch (error) {
-        const schedulerRecommendations = validateSchedulerRecommendationPair(
-          analysis.recommendations.filter((item) => ["partition", "qos"].includes(item.field)),
-          analysis.extracted,
-          this.schedulerProfiles,
-        );
-        analysis.recommendations = schedulerRecommendations;
-        const retained = schedulerRecommendations.length === 2 ? " The exact profile-matched partition and QoS suggestions remain available; other recommendations were withheld." : "";
+        analysis.recommendations = validateSchedulerRecommendationPair(conventionRecommendations, analysis.extracted, this.schedulerProfiles);
+        const retained = analysis.recommendations.length ? " Validated naming, command-shape, and exact profile suggestions remain available; unreviewed resource sizing was withheld." : "";
         analysis.recommendationReview = { verdict: "unavailable", reviews: [], findings: [`Independent recommendation review was unavailable: ${error.message}${retained}`] };
       }
     }
@@ -249,9 +254,9 @@ function mergeAirFacts(previous, current) {
   return { extracted, evidence: [...evidenceByField.values()] };
 }
 
-function validateCompletionRecommendations(value, extracted, schedulerProfiles) {
+function validateCompletionRecommendations(value, extracted, schedulerProfiles, description = "") {
   if (!value || (!Array.isArray(value.recommendations) && (!value.suggestions || typeof value.suggestions !== "object"))) throw new Error("Completion advisor returned an invalid object.");
-  const candidates = Array.isArray(value.recommendations)
+  let candidates = Array.isArray(value.recommendations)
     ? value.recommendations
     : Object.entries(value.suggestions).map(([field, suggestion]) => ({
         field,
@@ -261,6 +266,18 @@ function validateCompletionRecommendations(value, extracted, schedulerProfiles) 
         assumptions: ["This remains editable and requires researcher confirmation."],
         tuningAdvice: ["partition", "qos"].includes(field) ? "Confirm this profile is available to your account before submission." : "Review this value before generating the script.",
       }));
+  const solver = extractOpenFoamSolver(description);
+  candidates = candidates.map((item) => item?.field === "executable" && solver && String(item.value).toLowerCase() === solver.quote.toLowerCase()
+    ? { ...item, value: solver.value }
+    : item);
+  const recommendation = (field, recommendationValue, rationale, tuningAdvice) => ({ field, value: recommendationValue, rationale, uncertainty: "low", assumptions: ["This remains editable and requires researcher confirmation."], tuningAdvice });
+  if (solver && extracted.executable === undefined && !candidates.some((item) => item?.field === "executable")) {
+    candidates.push(recommendation("executable", solver.value, "AIR recognized the named OpenFOAM solver and normalized its case-sensitive executable name.", "Verify that this executable is available in the loaded OpenFOAM environment."));
+  }
+  if (Number.isInteger(extracted.tasks) && extracted.tasks > 1) {
+    if (extracted.nodes === undefined && !candidates.some((item) => item?.field === "nodes")) candidates.push(recommendation("nodes", 1, "AIR selected a one-node profiling run before assuming multi-node scaling efficiency.", "Measure MPI scaling before increasing the node count."));
+    if (extracted.args === undefined && !candidates.some((item) => item?.field === "args")) candidates.push(recommendation("args", ["-parallel"], "AIR recognized an MPI OpenFOAM run that requires the parallel solver flag after decomposition.", "Verify that the case has been decomposed before submission."));
+  }
   const allowed = new Set(["jobName", "outputPath", "errorPath", "partition", "qos", "executable", "modules", "args", "nodes", "gpus"]);
   const safeName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
   const safePath = /^(?!-)(?!.*\.\.)(?!.*[\r\n\0;&|`$<>])[A-Za-z0-9_./+%{}-]{1,240}$/;
@@ -293,14 +310,24 @@ function validateSchedulerAdvisor(value, extracted, schedulerProfiles) {
 }
 
 function reconcileMpiCpuSemantics(analysis, description) {
-  const match = description.match(/\b(\d[\d,]*)\s*cpus?\b[^.\n]{0,100}\b(?:since|because|for)\b[^.\n]{0,100}\bmpi\b[^.\n]{0,50}\bn\s*=\s*(\d[\d,]*)\b/i);
+  const explicitMpi = description.match(/\b(\d[\d,]*)\s*(?:total\s+)?cpus?\b(?!\s+per\s+task)[^.\n]{0,160}\bmpi\b[^.\n]{0,50}\bn\s*=\s*(\d[\d,]*)\b/i);
+  const openFoamParallel = analysis.software === "OpenFOAM"
+    ? description.match(/\b(\d[\d,]*)\s*cpus?\b[^.\n]{0,80}\b(?:for\s+)?(?:a\s+)?parallel(?:\s+run)?\b/i)
+    : null;
+  const match = explicitMpi || openFoamParallel;
   if (!match) return;
   const totalCpus = Number(match[1].replaceAll(",", ""));
-  const tasks = Number(match[2].replaceAll(",", ""));
-  if (tasks < 1 || totalCpus !== tasks || analysis.extracted.tasks !== tasks) return;
-  analysis.extracted.cpus = 1;
-  analysis.extractedEvidence = analysis.extractedEvidence.filter((item) => item.field !== "cpus");
-  analysis.detectedConflicts.push({ field: "cpus", severity: "info", message: `AIR interpreted ${totalCpus} CPUs as ${tasks} MPI ranks with 1 CPU per task, not ${tasks} CPUs per rank.` });
+  const tasks = explicitMpi ? Number(match[2].replaceAll(",", "")) : totalCpus;
+  if (tasks < 1 || totalCpus % tasks !== 0) return;
+  analysis.extracted.tasks = tasks;
+  analysis.extracted.cpus = totalCpus / tasks;
+  analysis.extractedEvidence = [
+    ...analysis.extractedEvidence.filter((item) => !["cpus", "tasks"].includes(item.field)),
+    { field: "cpus", quote: match[0] },
+    { field: "tasks", quote: match[0] },
+  ];
+  const cpusPerTask = totalCpus / tasks;
+  analysis.detectedConflicts.push({ field: "cpus", severity: "info", message: `AIR interpreted ${totalCpus} total CPUs as ${tasks} MPI ranks with ${cpusPerTask} ${cpusPerTask === 1 ? "CPU" : "CPUs"} per task.` });
 }
 
 function validateSchedulerRecommendationPair(recommendations, extracted, schedulerProfiles) {
@@ -328,6 +355,26 @@ function carryForwardSchedulerRecommendations(recommendations, priorValues, extr
     tuningAdvice: "Confirm this profile is available to your account before submission.",
   }));
   return validateSchedulerRecommendationPair([...recommendations, ...carried], extracted, schedulerProfiles);
+}
+
+function carryForwardCompletionRecommendations(recommendations, priorValues, extracted, schedulerProfiles, description) {
+  const byField = new Map(recommendations.map((item) => [item.field, item]));
+  const stableFields = ["jobName", "outputPath", "errorPath", "executable", "modules", "args", "nodes"];
+  const carried = stableFields.flatMap((field) => {
+    if (byField.has(field) || extracted[field] !== undefined || !Object.hasOwn(priorValues || {}, field)) return [];
+    return [{
+      field,
+      value: priorValues[field],
+      rationale: "AIR previously suggested this unchanged value for the same accumulated workload.",
+      uncertainty: "low",
+      assumptions: ["The researcher appended detail rather than replacing the workload."],
+      tuningAdvice: "Confirm or edit this value before generating the script.",
+    }];
+  });
+  for (const item of validateCompletionRecommendations({ recommendations: carried }, extracted, schedulerProfiles, description)) {
+    if (!byField.has(item.field)) byField.set(item.field, item);
+  }
+  return [...byField.values()];
 }
 
 function applyScientificFallbacks(analysis, description) {
