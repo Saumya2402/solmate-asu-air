@@ -107,6 +107,7 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
 
 function renderIntake(payload, { scroll = false } = {}) {
   const form = $("#specForm");
+  restoreSuggestionControls();
   form.reset();
   form.hidden = false;
   const extracted = payload.analysis.extracted || {};
@@ -331,6 +332,7 @@ function resetPlanningOutput() {
 }
 
 function markPlanningPending() {
+  restoreSuggestionControls();
   $("#results").hidden = true;
   $("#emptyState").hidden = false;
   state.script = "";
@@ -349,6 +351,7 @@ $("#specForm").addEventListener("input", (event) => {
   const input = event.target;
   updateResourceEstimate();
   if (!input.name || input.dataset.confirmField) return;
+  if (state.generatedSpec) invalidateGeneratedResult();
   state.formDraft.set(input.name, input.value);
   const recommendation = state.recommendations.get(input.name);
   const checkbox = document.querySelector(`[data-confirm-field="${CSS.escape(input.name)}"]`);
@@ -439,6 +442,7 @@ function renderGenerated(payload) {
   $("#results").hidden = false;
   state.script = payload.script;
   state.generatedSpec = payload.spec;
+  showAcceptedSuggestions(payload.spec);
   $("#useGeneratedEvidenceButton").disabled = false;
   state.filename = `${payload.spec.jobName}.slurm`;
   $("#validationBadge").textContent = "Validation passed";
@@ -457,6 +461,42 @@ function renderGenerated(payload) {
   renderList($("#reviewList"), [...payload.validation.warnings, ...payload.review.findings, ...payload.review.recommendations]);
   renderExplanations(payload.explanations, payload.agents.find((agent) => agent.role === "explainer"));
   renderGuidance(payload.guidance);
+}
+
+function showAcceptedSuggestions(spec) {
+  const acceptedFields = Object.entries(spec.provenance || {})
+    .filter(([, source]) => source === "air_recommended_user_confirmed")
+    .map(([field]) => field);
+  $("#recommendationHeadingLabel").textContent = "Accepted suggestions";
+  $("#recommendations").hidden = true;
+  $("#confirmAllSuggestions").hidden = true;
+  $("#recommendationReview").hidden = true;
+  $("#acceptedSuggestions").hidden = false;
+  $("#acceptedSuggestions").textContent = acceptedFields.length
+    ? `${acceptedFields.length} AIR suggestion${acceptedFields.length === 1 ? "" : "s"} accepted and included in the reviewed script.`
+    : "Requirements validated and reviewed; no AIR suggestions remain pending.";
+  $("#missingFields").textContent = "Requirements validated. The generated script reflects the confirmed form values.";
+  $("#confirmationSubtitle").textContent = "Requirements validated and reviewed.";
+}
+
+function restoreSuggestionControls() {
+  $("#recommendationHeadingLabel").textContent = "AIR suggestions";
+  $("#recommendations").hidden = false;
+  $("#acceptedSuggestions").hidden = true;
+  $("#confirmationSubtitle").textContent = "Recommended values remain advisory until confirmed.";
+}
+
+function invalidateGeneratedResult() {
+  state.script = "";
+  state.generatedSpec = null;
+  $("#results").hidden = true;
+  $("#emptyState").hidden = false;
+  $("#emptyState").textContent = "Requirements changed; validate again to refresh the reviewed output.";
+  $("#useGeneratedEvidenceButton").disabled = true;
+  $("#generationStatus").textContent = "Requirements changed. Validate and generate again.";
+  restoreSuggestionControls();
+  $("#confirmAllSuggestions").hidden = state.recommendations.size === 0;
+  $("#recommendationReview").hidden = true;
 }
 
 function renderExplanations(explanations, agent) {

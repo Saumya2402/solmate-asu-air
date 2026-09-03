@@ -40,6 +40,15 @@ test("UI distinguishes mock mode and retains unchanged user decisions", () => {
   assert.match(app, /Keeping your form values/);
 });
 
+test("successful generation collapses accepted suggestions and edits invalidate stale output", () => {
+  assert.match(html, /id="acceptedSuggestions"/);
+  assert.match(html, /id="confirmationSubtitle"/);
+  assert.match(app, /showAcceptedSuggestions\(payload\.spec\)/);
+  assert.match(app, /air_recommended_user_confirmed/);
+  assert.match(app, /invalidateGeneratedResult\(\)/);
+  assert.match(app, /Requirements changed; validate again/);
+});
+
 test("newcomer tools use compact recommendations and task tabs", () => {
   for (const tab of ["script", "explain", "check", "run"]) assert.match(html, new RegExp(`data-output-tab="${tab}"`));
   for (const id of ["correctionBar", "resourceEstimate", "scriptExplanations", "readinessChecks", "firstRunPlan"]) assert.match(html, new RegExp(`id="${id}"`));

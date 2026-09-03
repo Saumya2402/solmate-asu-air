@@ -34,7 +34,7 @@
 
           <form id="specForm" hidden>
             <div class="divider"></div>
-            <div class="section-title compact"><span>02</span><div><h2>Confirm requirements</h2><p>Recommended values remain advisory until confirmed.</p></div></div>
+            <div class="section-title compact"><span>02</span><div><h2>Confirm requirements</h2><p id="confirmationSubtitle">Recommended values remain advisory until confirmed.</p></div></div>
             <section id="airInterpretation" class="air-interpretation" hidden aria-live="polite">
               <p class="interpretation-label">AIR interpretation</p>
               <h3 id="workflowSummary"></h3>
@@ -52,8 +52,9 @@
               <div id="questionBlock" hidden><h4>Other details that would improve the plan</h4><ul id="domainQuestionList"></ul></div>
             </section>
             <p id="missingFields" class="missing-note"></p>
-            <div class="recommendation-heading"><span>AIR suggestions</span><button id="confirmAllSuggestions" class="secondary compact-button" type="button" hidden>Confirm all</button></div>
+            <div class="recommendation-heading"><span id="recommendationHeadingLabel">AIR suggestions</span><button id="confirmAllSuggestions" class="secondary compact-button" type="button" hidden>Confirm all</button></div>
             <div id="recommendations" class="recommendations"></div>
+            <div id="acceptedSuggestions" class="accepted-suggestions" hidden></div>
             <div id="recommendationReview" class="recommendation-review" hidden></div>
             <div class="field-grid">
               <label>Cluster<select name="cluster" required><option value="">Select</option><option value="sol">Sol</option><option value="phoenix">Phoenix</option></select></label>
