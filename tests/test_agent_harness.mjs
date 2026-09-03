@@ -351,3 +351,20 @@ test("diagnosis repairs only an exact app-generated script with an allowed patch
   const arbitrary = await harness.diagnose({ cluster: "sol", script: `${exact}\necho changed`, originalSpec: completeSpec, log: "oom_kill detected", metadata: { State: "OUT_OF_MEMORY" }, rules });
   assert.equal(arbitrary.repair, null);
 });
+
+test("diagnosis falls back to verified findings when AIR cites altered evidence", async () => {
+  const gateway = { async chat() { return { model: "test", latencyMs: 12, content: JSON.stringify({ category: "COMMAND_NOT_FOUND_OR_MODULE", confidence: "confirmed", ruleId: "slurm-command-not-found", evidence: [{ lineNumber: 1, text: "bash was not found" }], explanation: "The shell was unavailable.", alternatives: [], missingEvidence: [], recommendations: ["Use /bin/bash."], patch: null }) }; } };
+  const rules = [{ id: "slurm-command-not-found", cluster: "any", category: "COMMAND_NOT_FOUND_OR_MODULE", requiresCorroboration: false }];
+  const result = await new AgentHarness({ gateway }).diagnose({
+    cluster: "sol",
+    script: "#SBATCH --export=NONE\nsrun bash -lc 'run-task'",
+    log: "error: execve(): bash: No such file or directory\nsrun: task 0 exited with exit code 2",
+    metadata: { State: "FAILED", ExitCode: "2:0" },
+    rules,
+  });
+  assert.equal(result.diagnosis.category, "COMMAND_NOT_FOUND_OR_MODULE");
+  assert.equal(result.diagnosis.evidence[0].text, "error: execve(): bash: No such file or directory");
+  assert.equal(result.diagnosisValidation.airAccepted, false);
+  assert.equal(result.diagnosisValidation.fallback, "deterministic");
+  assert.equal(result.agent.model, "test");
+});

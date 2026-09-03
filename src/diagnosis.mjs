@@ -44,10 +44,46 @@ export function deterministicFindings(log, metadata = {}) {
   add("OUT_OF_MEMORY", "slurm-oom", /out of memory|oom-kill|oom_kill/i, "The log contains an explicit memory-exhaustion signal.", metadata.State === "OUT_OF_MEMORY" ? "confirmed" : "probable");
   add("TIMEOUT", "slurm-timeout", /time limit|timeout/i, "The supplied output indicates that a time limit was reached.", metadata.State === "TIMEOUT" ? "confirmed" : "probable");
   add("INVALID_PARTITION_OR_QOS_OR_CONSTRAINT", "slurm-invalid-feature", /invalid feature specification/i, "ASU documents this as an ambiguous partition, QoS, or constraint problem.");
-  add("COMMAND_NOT_FOUND_OR_MODULE", "slurm-command-not-found", /command not found|module.*not found/i, "The requested command or module was not available in the job environment.", "confirmed");
+  add("COMMAND_NOT_FOUND_OR_MODULE", "slurm-command-not-found", /command not found|module.*not found|execve\(\):\s*[^:\r\n]+:\s*no such file or directory/i, "The requested executable or module was not available in the job environment.", "confirmed");
   add("PENDING_NOT_FAILED", "slurm-pending", /\bpriority\b|\bresources\b|qosmax|reqnodenotavail/i, "This resembles a pending scheduler reason rather than a completed job failure.", "confirmed");
   add("INFRASTRUCTURE_OR_ADMIN", "slurm-infrastructure", /drain|maintenance|node.*down/i, "This indicates an administrator or infrastructure condition; do not rewrite the script.", "confirmed");
   return findings;
+}
+
+export function diagnosisFromDeterministicFindings(findings = []) {
+  if (!findings.length) return null;
+  if (findings.length > 1) {
+    return {
+      category: "UNKNOWN",
+      confidence: "inconclusive",
+      ruleId: null,
+      evidence: findings[0].evidence,
+      explanation: "Multiple verified failure signals were found, so one root cause cannot be selected safely.",
+      alternatives: findings.map((finding) => finding.category),
+      missingEvidence: ["Review the complete job log and sacct record to establish which signal occurred first."],
+      recommendations: ["Resolve the earliest verified failure before changing unrelated resource requests."],
+      patch: null,
+    };
+  }
+
+  const finding = findings[0];
+  const recommendations = finding.category === "COMMAND_NOT_FOUND_OR_MODULE"
+    ? [
+        "Use an absolute path for the failing executable or initialize PATH and required modules inside the batch script before srun.",
+        "Submit a short test job again and verify the application command starts before changing resource requests.",
+      ]
+    : ["Review the cited evidence and applicable ASU guidance before changing the script."];
+  return {
+    category: finding.category,
+    confidence: finding.confidence,
+    ruleId: finding.ruleId,
+    evidence: finding.evidence,
+    explanation: finding.explanation,
+    alternatives: [],
+    missingEvidence: [],
+    recommendations,
+    patch: null,
+  };
 }
 
 export function validateDiagnosis(diagnosis, { log, metadata = {}, allowedRuleIds = [], rules = [], deterministicFindings: findings = [] }) {

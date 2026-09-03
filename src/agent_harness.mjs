@@ -1,6 +1,6 @@
 import { applyRepairPatch, extractJsonObject, isExactRenderedScript, renderSlurmScript, validateJobSpec, walltimeHours } from "./job_spec.mjs";
 import { extractExplicitJobName, extractExplicitWalltime, missingFields, normalizeAirFacts, normalizeIntakeAnalysis, validateCorrections, validateIntakeAnalysis } from "./intake.mjs";
-import { deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
+import { diagnosisFromDeterministicFindings, deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
 import { schedulerProfileFor } from "./knowledge.mjs";
 import { beginnerWarnings, buildReadinessChecks, deterministicScriptExplanations, firstRunPlan, resourceMetrics, validateScriptExplanations } from "./newcomer_guidance.mjs";
 import { configuredRoleModel } from "./model_router.mjs";
@@ -215,13 +215,23 @@ export class AgentHarness {
     const redactedScript = redactSensitive(script);
     const redactedMetadata = redactRecord(metadata);
     const findings = deterministicFindings(redactedLog.text, redactedMetadata.value);
-    const response = await this.gateway.chat({ model: this.models.diagnostician, temperature: 0, maxTokens: 700, messages: [{ role: "system", content: DIAGNOSIS_SYSTEM }, { role: "user", content: JSON.stringify({ cluster, script: redactedScript.text, log: redactedLog.text, metadata: redactedMetadata.value, deterministicFindings: findings, rules: applicable }) }] });
-    const diagnosis = validateDiagnosis(await this.#parse(response, "diagnostician"), { log: redactedLog.text, metadata: redactedMetadata.value, allowedRuleIds: applicable.map((rule) => rule.id), rules: applicable, deterministicFindings: findings });
+    let response = null;
+    let diagnosis;
+    let diagnosisValidation = { airAccepted: true, fallback: null };
+    try {
+      response = await this.gateway.chat({ model: this.models.diagnostician, temperature: 0, maxTokens: 700, messages: [{ role: "system", content: DIAGNOSIS_SYSTEM }, { role: "user", content: JSON.stringify({ cluster, script: redactedScript.text, log: redactedLog.text, metadata: redactedMetadata.value, deterministicFindings: findings, rules: applicable }) }] });
+      diagnosis = validateDiagnosis(await this.#parse(response, "diagnostician"), { log: redactedLog.text, metadata: redactedMetadata.value, allowedRuleIds: applicable.map((rule) => rule.id), rules: applicable, deterministicFindings: findings });
+    } catch (error) {
+      diagnosis = diagnosisFromDeterministicFindings(findings);
+      if (!diagnosis) throw error;
+      diagnosisValidation = { airAccepted: false, fallback: "deterministic", reason: "AIR output did not pass deterministic diagnosis validation." };
+    }
     let repair = null;
     if (originalSpec && diagnosis.confidence === "confirmed" && !["PENDING_NOT_FAILED", "INFRASTRUCTURE_OR_ADMIN"].includes(diagnosis.category) && diagnosis.patch && isExactRenderedScript(originalSpec, script)) {
       try { repair = applyRepairPatch(originalSpec, diagnosis.patch); } catch { repair = null; }
     }
-    return { diagnosis, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: applicable.map(({ id, category, source }) => ({ id, category, source })), agent: agentMetadata("diagnostician", response) };
+    const agent = response ? agentMetadata("diagnostician", response) : { role: "diagnostician", model: this.models.diagnostician, latencyMs: null, usage: null };
+    return { diagnosis, diagnosisValidation, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: applicable.map(({ id, category, source }) => ({ id, category, source })), agent };
   }
 
   async #parse(response, role, signal) {

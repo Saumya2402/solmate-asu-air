@@ -17,6 +17,11 @@ test("UI exposes complete diagnosis metadata and repair comparison", () => {
   assert.match(app, /originalSpec/);
 });
 
+test("UI discloses whether the AIR diagnosis passed evidence validation", () => {
+  assert.match(app, /AIR evidence validated/);
+  assert.match(app, /AIR response rejected; verified checks shown/);
+});
+
 test("UI gates final submission and unresolved job commands", () => {
   assert.match(html, /id="submissionAcknowledgement"[^>]*hidden/);
   assert.match(app, /button\.disabled = step\.unresolved/);

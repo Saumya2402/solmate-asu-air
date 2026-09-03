@@ -549,7 +549,10 @@ function renderDiagnosis(payload) {
   $("#confidenceBadge").textContent = payload.diagnosis.confidence;
   $("#categoryBadge").textContent = payload.diagnosis.category.replaceAll("_", " ");
   $("#diagnosisExplanation").textContent = payload.diagnosis.explanation;
-  $("#diagnosisAgent").textContent = `Diagnostician: ${payload.agent.model} | ${payload.agent.latencyMs ?? "n/a"} ms`;
+  const validationLabel = payload.diagnosisValidation?.airAccepted === false
+    ? "AIR response rejected; verified checks shown"
+    : "AIR evidence validated";
+  $("#diagnosisAgent").textContent = `Diagnostician: ${payload.agent.model} | ${payload.agent.latencyMs ?? "n/a"} ms | ${validationLabel}`;
   renderList($("#evidenceList"), payload.diagnosis.evidence.map((item) => item.source === "metadata" ? `${item.field}: ${item.text}` : `Line ${item.lineNumber}: ${item.text}`));
   renderList($("#deterministicFindings"), payload.deterministicFindings.map((item) => `${item.confidence}: ${item.explanation}`));
   renderList($("#diagnosisAlternatives"), payload.diagnosis.alternatives || []);

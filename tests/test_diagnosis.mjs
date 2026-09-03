@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deterministicFindings, redactSensitive, validateDiagnosis } from "../src/diagnosis.mjs";
+import { diagnosisFromDeterministicFindings, deterministicFindings, redactSensitive, validateDiagnosis } from "../src/diagnosis.mjs";
 import { readFile } from "node:fs/promises";
 
 test("OOM requires metadata corroboration for confirmed confidence", () => {
@@ -13,6 +13,14 @@ test("invalid feature remains an ambiguous family", () => {
   const finding = deterministicFindings("sbatch: error: Batch job submission failed: Invalid feature specification")[0];
   assert.equal(finding.category, "INVALID_PARTITION_OR_QOS_OR_CONSTRAINT");
   assert.equal(finding.confidence, "probable");
+});
+
+test("Slurm execve missing executable output is a confirmed environment failure", () => {
+  const findings = deterministicFindings("error: execve(): bash: No such file or directory\nsrun: task 0 exited with exit code 2");
+  assert.equal(findings[0].category, "COMMAND_NOT_FOUND_OR_MODULE");
+  assert.equal(findings[0].confidence, "confirmed");
+  const diagnosis = diagnosisFromDeterministicFindings(findings);
+  assert.match(diagnosis.recommendations[0], /absolute path|PATH/i);
 });
 
 test("diagnosis rejects fabricated evidence and a text/line mismatch", () => {
