@@ -6,7 +6,7 @@ Date: 2026-09-02
 
 The kickoff deck defines an open-ended, two-day app challenge requiring teams of 3-5, an original prototype built with AIR-hosted models, a repository with code and README, a pitch deck, and a recorded pitch. Pre-screening emphasizes completion, code quality, and slide quality. Finalist judging emphasizes real-world impact, prototype functionality, innovation, cross-functional collaboration, and pitch quality.
 
-The prep workshop highlights AIR's differentiators: ASU-local data, unmetered token usage, persistent applications, OpenAI-compatible APIs, agentic workflows, multimodal models, embeddings, ASR/TTS, and access to broader compute through Kubernetes.
+The prep workshop highlights AIR's differentiators: ASU-local data, unmetered token usage, persistent applications, standardized chat-completions APIs, agentic workflows, multimodal models, embeddings, ASR/TTS, and access to broader compute through Kubernetes.
 
 Important ambiguity: kickoff slides 44-45 refer to a specific "data science tutor" use case, CPU-versus-GPU benchmarks on Sol, a four-minute pitch, and a six-minute presentation slot. These conflict with the earlier open-ended challenge and five-minute pitch instructions. Confirm with staff whether slides 44-45 are active requirements or leftover material before locking scope.
 

@@ -21,7 +21,7 @@ Use an ASU AIR-hosted model as a critic to identify critical issues in the live 
 
 - Checked process and Windows user credential state without printing values: user-level key available.
 - Inspected expected OpenCode config paths: no local Voyager-generated config found.
-- `gpt-oss-120b` review attempts: failed twice with HTTP 400 after about 43 seconds each.
+- AIR-hosted `gpt-oss-120b` review attempts: failed twice with HTTP 400 after about 43 seconds each.
 - `qwen3-coder-next` minimal live preflight: passed in 815 ms with exact requested output.
 - Long PowerShell request: failed with a gateway body-parsing error reporting `model=None`.
 - Full plan review through the project's Node `AirClient`: passed in 145,059 ms.
@@ -39,5 +39,5 @@ Use an ASU AIR-hosted model as a critic to identify critical issues in the live 
 ## Unresolved issues
 
 - Apply the five required plan amendments after user approval.
-- Diagnose `gpt-oss-120b` HTTP 400 behavior only if that model remains a desired candidate.
+- Diagnose the AIR-hosted `gpt-oss-120b` HTTP 400 behavior only if that model remains a desired candidate.
 - Run a structured JSON conformance probe with the selected runtime planner before feature implementation.

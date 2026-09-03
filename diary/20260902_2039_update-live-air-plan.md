@@ -20,7 +20,7 @@ Update the main implementation plan using the accepted findings from the live AI
 ## Changes made
 
 - Recorded successful `qwen3-coder-next` live connectivity and measured critic latency.
-- Excluded `gpt-oss-120b` pending diagnosis of its HTTP 400 responses.
+- Excluded the AIR-hosted `gpt-oss-120b` model pending diagnosis of its HTTP 400 responses.
 - Added decisions accepted and rejected from the AIR critic review.
 - Added exact diagnosis evidence matching rules.
 - Restricted automatic repair to allowlisted changes on exact app-generated script/spec pairs.
@@ -39,5 +39,5 @@ Update the main implementation plan using the accepted findings from the live AI
 ## Unresolved issues
 
 - User approval is required before implementation begins.
-- User must confirm that the available user-level key is the rotated replacement.
+- Live preflight must confirm that the available user-level AIR credential is active.
 - Structured JSON conformance remains the first live implementation test.

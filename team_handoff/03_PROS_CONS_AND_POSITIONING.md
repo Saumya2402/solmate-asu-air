@@ -54,7 +54,7 @@ For ASU researchers who need to run computational workloads, SolMate converts wo
 
 ## Objection handling
 
-**"Is this just ChatGPT for Slurm?"**
+**"Is this just a generic chatbot for Slurm?"**
 
 No. AIR interprets and explains, while deterministic code owns completeness, policy validation, script rendering, evidence verification, and command generation.
 
@@ -78,4 +78,3 @@ The result includes exact supplied evidence, a confidence tier, alternatives, mi
 - JobSense - compact but generic.
 
 Recommended public form: **SolMate: ASU Compute Concierge**.
-

@@ -54,5 +54,5 @@ Implement the approved guided planning, Sol handoff, and failure-forensics plan 
 
 - Browser-based screenshot and responsive visual QA could not run because no browser connection was available in this session.
 - `sbatch --test-only` requires the user to connect to Sol through VPN and has not been executed by the application.
-- The previously exposed AIR key should still be confirmed as rotated before judging.
+- The active AIR credential should pass live preflight before judging.
 - No real cluster job was submitted, by design.

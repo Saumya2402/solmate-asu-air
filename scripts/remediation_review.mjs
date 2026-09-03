@@ -19,7 +19,7 @@ const response = await client.chat({
 });
 const review = extractJsonObject(response.content);
 if (!["approve", "revise"].includes(review.verdict) || !Array.isArray(review.findings) || !Array.isArray(review.passedChecks) || !Array.isArray(review.testGaps)) throw new Error("AIR remediation critic returned an invalid schema.");
-const artifact = { generatedAt: new Date().toISOString(), provider: "ASU AIR OpenAI-compatible API", requestedModel: model, returnedModel: response.model || model, latencyMs: response.latencyMs ?? null, usage: response.usage || null, schemaValid: true, review };
+const artifact = { generatedAt: new Date().toISOString(), provider: "ASU AIR gateway", requestedModel: model, returnedModel: response.model || model, latencyMs: response.latencyMs ?? null, usage: response.usage || null, schemaValid: true, review };
 await mkdir("reviews", { recursive: true });
 const outputPath = process.env.AIR_REVIEW_OUTPUT || "reviews/air_remediation_critic_20260903.json";
 await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");

@@ -2,6 +2,10 @@
 
 SolMate is a Spark Challenge prototype that uses ASU AIR-hosted models to interpret scientific workflows, detect software-specific execution concerns, review a deterministically rendered Slurm script, and diagnose supplied failure evidence. It never executes or submits generated commands.
 
+## AIR attribution
+
+All language-model inference demonstrated by SolMate runs through ASU AIR-hosted models. AIR performs workload interpretation, typo review, safe completion suggestions, scheduler-profile selection, scientific planning, independent critique, script explanation, and failure diagnosis. Deterministic Node.js code validates AIR evidence and recommendations before rendering any Slurm content.
+
 ## Architecture
 
 ~~~text
@@ -40,10 +44,10 @@ npm run start:mock
 
 Open http://127.0.0.1:4173.
 
-For live AIR, rotate any key previously exposed in chat or screenshots and load it into the current terminal without committing it:
+For live AIR, load an active AIR API key into the current terminal without committing it:
 
 ~~~powershell
-$secureAirKey = Read-Host "Paste the rotated AIR key" -AsSecureString
+$secureAirKey = Read-Host "Paste the AIR API key" -AsSecureString
 $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureAirKey)
 try {
   $env:OPENAI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)

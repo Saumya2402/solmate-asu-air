@@ -15,9 +15,9 @@ Create a small working demo that uses ASU AIR models through an agentic harness 
 ## Assumptions / unknowns
 
 - The AIR endpoint remains `https://openai.rc.asu.edu/v1/chat/completions`.
-- Model IDs currently available include `qwen3-coder-next`, `devstral2-123b`, and `gpt-oss-120b`.
+- AIR-hosted model IDs currently available include `qwen3-coder-next`, `devstral2-123b`, and `gpt-oss-120b`.
 - The API supports ordinary Chat Completions requests; strict JSON response-format support is not assumed.
-- No API key is available to the current automation process, so live validation may require the user to run one command in a terminal where the rotated key is set.
+- No AIR API credential is available to the current automation process, so live validation may require the user to run one command in a terminal where an active key is set.
 - Exact Sol partitions, limits, and module names are not assumed. Demo policies will be clearly labeled examples.
 
 ## Scope

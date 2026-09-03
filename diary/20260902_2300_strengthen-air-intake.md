@@ -37,4 +37,4 @@ Fix stale planner fields and make AIR perform visible, evidence-backed scientifi
 
 - Browser screenshot and responsive visual QA remain unavailable because no browser connection is present.
 - A human-operated `sbatch --test-only` on Sol remains outstanding.
-- Confirm rotation of the API key previously exposed in chat before judging.
+- Confirm the active AIR credential through live preflight before judging.

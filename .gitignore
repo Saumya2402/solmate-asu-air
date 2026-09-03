@@ -7,6 +7,7 @@ coverage/
 tmp/
 SolMate_Teammate_Handoff_*/
 SolMate_Teammate_Handoff_*.zip
+team_handoff/Business_Review_Template_Unchanged.pptx
 *.log
 .DS_Store
 Thumbs.db

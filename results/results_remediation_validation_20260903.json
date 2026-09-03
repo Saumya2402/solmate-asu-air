@@ -9,7 +9,7 @@
     "secretPatternScan": "clean"
   },
   "liveAir": {
-    "provider": "ASU AIR OpenAI-compatible API",
+    "provider": "ASU AIR gateway",
     "model": "qwen3-coder-30b-a3b-instruct",
     "preflight": { "schemaValid": true, "latencyMs": 1403 },
     "goldenPath": {

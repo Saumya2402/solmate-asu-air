@@ -41,11 +41,11 @@ Create a working vertical slice with an AIR-compatible planner/critic harness, d
 - `node --check` over JavaScript and MJS files: passed.
 - Secret-pattern scan over project text files: passed.
 - Browser screenshot validation: not run; no connected browser was available.
-- `npm run demo:live`: not run; `OPENAI_API_KEY` was not available to this process.
+- `npm run demo:live`: not run; an AIR API credential was not available to this process.
 
 ## Unresolved issues
 
-- Rotate the previously exposed key, set it in the current terminal, and run the live AIR demo.
+- Set an active AIR API key in the current terminal and run the live AIR demo.
 - Visually inspect desktop and mobile layouts in a browser.
 - Verify any real partition, module, and resource-limit claims against current ASU RC documentation before presenting them as policy.
 - Add failure-log diagnosis only after the live planner/critic flow is verified.

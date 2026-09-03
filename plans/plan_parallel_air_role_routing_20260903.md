@@ -29,7 +29,7 @@ Reduce SolMate's perceived and end-to-end AIR latency while improving extraction
 - Measured Qwen Coder 30B calls vary substantially: planning has ranged from about 7 to 26 seconds, while critic and diagnosis calls have sometimes completed in about 3 seconds.
 - `qwen3-coder-next` passed a small structured preflight but timed out on the earlier full intake.
 - `north-mini-code` returned empty content during the earlier bounded intake.
-- `gpt-oss-120b` returned HTTP 400 in prior probes and remains excluded pending compatibility diagnosis.
+- The AIR-hosted `gpt-oss-120b` model returned HTTP 400 in prior probes and remains excluded pending compatibility diagnosis.
 - Later Qwen Coder critic calls have produced schema-invalid or internally inconsistent reviews, so one model should not be treated as an independent consensus.
 - AIR currently exposes multiple candidate families, including Qwen, GLM, Llama, Gemma, Devstral, MiniMax, and coding-specific models.
 

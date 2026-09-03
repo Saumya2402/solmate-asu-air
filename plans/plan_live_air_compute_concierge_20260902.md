@@ -36,11 +36,11 @@ Convert the existing mock prototype into a tested, pitch-ready website whose gui
 
 - The dependency-free Node.js website runs on `http://127.0.0.1:4173` in mock mode.
 - The planner/validator/renderer/critic mock workflow passes 8 automated tests and an HTTP smoke test.
-- A user-level `OPENAI_API_KEY` is available without printing its value. Rotation of the previously exposed key still requires user confirmation.
+- A user-level AIR API credential is available without printing its value. Its validity still requires live preflight verification.
 - Live `/v1/chat/completions` connectivity through the project's Node `AirClient` is verified with `qwen3-coder-next`.
 - The minimal live preflight returned the exact requested text in 815 ms.
 - A full-plan critic call returned successfully in 145,059 ms using 5,945 total tokens. This latency is unacceptable for the synchronous demo path.
-- Two `gpt-oss-120b` requests returned HTTP 400 after approximately 43 seconds; that model is excluded until its request compatibility is diagnosed.
+- Two requests to the AIR-hosted `gpt-oss-120b` model returned HTTP 400 after approximately 43 seconds; that model is excluded until its request compatibility is diagnosed.
 - Planner and critic mock responses are fixtures; they are not acceptable evidence of AIR use.
 - ASU explicitly publishes AIR skills for Slurm batch scripts and diagnosing stuck or failed jobs, validating the institutional relevance of failure forensics.
 - Official account documentation says an LLM-only Voyager account does not grant Sol/Phoenix HPC access. HPC access requires the appropriate sponsored account, and Voyager access requires the ASU VPN.
@@ -51,7 +51,7 @@ Convert the existing mock prototype into a tested, pitch-ready website whose gui
 
 ## Assumptions / unknowns
 
-- The user will confirm that the user-level key is the rotated replacement; the key will never be pasted into chat, emitted by a command, or committed.
+- The AIR credential remains in the user-level environment; it will never be pasted into prompts, emitted by a command, or committed.
 - `https://openai.rc.asu.edu/v1/chat/completions` remains the required endpoint.
 - At least one code-oriented and one review-oriented model from the Voyager model list will successfully handle the prompts.
 - AIR may not support `response_format` or identical tool-calling behavior across models, so the implementation will continue using plain Chat Completions with defensive JSON extraction.
@@ -211,7 +211,7 @@ Use a small, repeatable benchmark rather than calling every catalog model. Initi
 | Critic | `qwen3-coder-30b-a3b-instruct` | `devstral2-123b`, `qwen3-coder-next` | Useful defect detection, unsupported-claim rate, median latency <=20 seconds |
 | Diagnostician | `qwen3-coder-30b-a3b-instruct` | `qwen3-coder-next`, `devstral2-123b` | Correct category/evidence, valid patch, median latency <=20 seconds |
 
-The benchmark will use five workload cases and five seeded failure cases, run sequentially, and be time-boxed to 60 minutes. Stop evaluating a model after one hard timeout, an API compatibility failure, or repeated malformed output. Select one model per role and record the evidence; do not route production requests to all candidates. `gpt-oss-120b` is excluded unless its HTTP 400 behavior is resolved after the core product works.
+The benchmark will use five workload cases and five seeded failure cases, run sequentially, and be time-boxed to 60 minutes. Stop evaluating a model after one hard timeout, an API compatibility failure, or repeated malformed output. Select one AIR-hosted model per role and record the evidence; do not route production requests to all candidates. The AIR-hosted `gpt-oss-120b` model is excluded unless its HTTP 400 behavior is resolved after the core product works.
 
 ## Out of scope
 
@@ -316,7 +316,7 @@ The benchmark will use five workload cases and five seeded failure cases, run se
 ### Phase 0 - Credential and live preflight gate
 
 1. Stop the currently running mock server to avoid mode confusion.
-2. User confirms that the user-level key is the rotated replacement for the exposed key.
+2. Live preflight confirms that the user-level AIR credential is active.
 3. Add `npm run preflight:live`, which fails before network access when the key or model ID is absent.
 4. Call `qwen3-coder-next` with `temperature: 0` for an exact small JSON object and validate every field.
 5. Record only status, requested/returned model IDs, latency, token usage, and schema pass/fail.
@@ -459,7 +459,7 @@ Exit criterion: the demo can be repeated three times without code changes, all v
 
 | Window | Work |
 |---|---|
-| Hours 0-1 | Key rotation, live preflight, endpoint/model verification |
+| Hours 0-1 | Credential setup, live preflight, endpoint/model verification |
 | Hours 1-3 | AIR client hardening and role-model benchmark |
 | Hours 3-8 | Guided intake, validation, live planning, and malformed-output recovery |
 | Hours 8-12 | Failure diagnosis, evidence validation, and repair flow |
@@ -511,7 +511,7 @@ Exit criterion: the demo can be repeated three times without code changes, all v
 
 ## Approval gate
 
-Implementation begins only after the user approves this plan. The first implementation action is Phase 0, which requires the user to have a rotated key available in their own terminal without sharing it in chat.
+Implementation begins only after the user approves this plan. The first implementation action is Phase 0, which requires an active AIR credential in the user's own terminal without sharing it in prompts or repository files.
 
 ## Approved newcomer-feature addendum - 2026-09-03
 

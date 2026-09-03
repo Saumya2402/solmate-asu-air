@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-09-03T07:06:42.949Z",
-  "provider": "ASU AIR OpenAI-compatible API",
+  "provider": "ASU AIR gateway",
   "requestedModel": "qwen3-coder-30b-a3b-instruct",
   "returnedModel": "qwen3-coder-30b-a3b-instruct",
   "latencyMs": 89601,

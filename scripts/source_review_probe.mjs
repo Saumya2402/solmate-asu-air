@@ -29,7 +29,7 @@ const response = await client.chat({
 const review = extractJsonObject(response.content);
 const artifact = {
   generatedAt: new Date().toISOString(),
-  provider: "ASU AIR OpenAI-compatible API",
+  provider: "ASU AIR gateway",
   requestedModel: model,
   returnedModel: response.model || model,
   latencyMs: response.latencyMs ?? null,

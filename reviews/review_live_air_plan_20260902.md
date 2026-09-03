@@ -22,7 +22,7 @@ Date: 2026-09-02
 | Completion tokens | 1,825 |
 | Total tokens | 5,945 |
 
-Two earlier attempts with `gpt-oss-120b` returned HTTP 400 after approximately 43 seconds. Removing the optional output-token parameter did not resolve that model-specific failure. A long PowerShell request to `qwen3-coder-next` also produced a gateway body-parsing error (`model=None`); the same request succeeded through the project's Node `AirClient`, which is the transport the website uses.
+Two earlier attempts with the AIR-hosted `gpt-oss-120b` model returned HTTP 400 after approximately 43 seconds. Removing the optional output-token parameter did not resolve that model-specific failure. A long PowerShell request to the AIR-hosted `qwen3-coder-next` model also produced a gateway body-parsing error (`model=None`); the same request succeeded through the project's Node `AirClient`, which is the AIR transport the website uses.
 
 ## Critic verdict
 

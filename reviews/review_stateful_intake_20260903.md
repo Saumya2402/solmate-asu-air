@@ -16,7 +16,7 @@ Complete for the reported source-level defect. Browser automation remains an exp
 
 ## AIR critic assessment
 
-The independent AIR critic used `qwen3-coder-30b-a3b-instruct` through the ASU AIR OpenAI-compatible endpoint. It returned schema-valid JSON in 89,601 ms with verdict `revise`; the raw result is in `reviews/air_stateful_intake_critic_20260903.json`.
+The independent AIR critic used the AIR-hosted `qwen3-coder-30b-a3b-instruct` model through the ASU AIR gateway. It returned schema-valid JSON in 89,601 ms with verdict `revise`; the raw result is in `reviews/air_stateful_intake_critic_20260903.json`.
 
 - Its requested tests for Sol wording, joined names/paths, MPI interpretation, standalone paths, partial extraction, and newer-value precedence now exist and pass.
 - Its claim that `mergeAirFacts` has the wrong precedence is contradicted by source and regression tests: object spread applies current facts after previous facts.

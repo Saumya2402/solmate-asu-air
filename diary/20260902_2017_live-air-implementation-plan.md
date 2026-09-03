@@ -23,12 +23,12 @@ Prepare an approval-ready implementation plan for converting the current mock Co
 
 - Inspected project files, active plan, latest diary, runtime configuration, and server health.
 - Confirmed the current website is running in mock mode.
-- Confirmed `OPENAI_API_KEY` is not available to the automation process.
+- Confirmed an AIR API credential is not available to the automation process.
 - Checked the new plan for all required section headings: passed.
 - Confirmed the plan contains 325 lines and an explicit approval gate.
 
 ## Unresolved issues
 
 - User approval is required before implementation under the Implementation skill.
-- Phase 0 requires a rotated AIR API key set in the user's terminal without sharing it in chat.
+- Phase 0 requires an active AIR API key set in the user's terminal without sharing it in prompts or repository files.
 - Live model availability, latency, and JSON adherence remain unverified until implementation begins.

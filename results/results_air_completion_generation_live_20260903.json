@@ -1,6 +1,6 @@
 {
   "date": "2026-09-03",
-  "provider": "ASU AIR OpenAI-compatible API",
+  "provider": "ASU AIR gateway",
   "fixture": "sanitized OpenFOAM MPI workload matching the reported UI failure",
   "intake": {
     "cpusPerTask": 1,
