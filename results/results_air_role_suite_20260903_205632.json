@@ -1,0 +1,743 @@
+{
+  "generatedAt": "2026-09-03T20:56:32.315Z",
+  "endpoint": "https://openai.rc.asu.edu/v1/chat/completions",
+  "kind": "rapid role-specific screening",
+  "containsPrompts": false,
+  "containsRawResponses": false,
+  "timeoutMs": 18000,
+  "concurrency": 4,
+  "calls": 30,
+  "elapsedMs": 85037,
+  "roles": [
+    {
+      "role": "workflow_classifier",
+      "winner": "qwen3-coder-30b-a3b-instruct",
+      "candidates": [
+        {
+          "model": "qwen3-30b-a3b-instruct-2507",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 1,
+          "meanQuality": 0,
+          "p50LatencyMs": 10517,
+          "p95LatencyMs": 10517,
+          "results": [
+            {
+              "role": "workflow_classifier",
+              "case": "pytorch_training",
+              "requestedModel": "qwen3-30b-a3b-instruct-2507",
+              "returnedModel": "qwen3-30b-a3b-instruct-2507",
+              "passed": false,
+              "schemaValid": true,
+              "quality": 0,
+              "failedChecks": [
+                "workloadType",
+                "software",
+                "usefulQuestion"
+              ],
+              "latencyMs": 10517
+            }
+          ]
+        },
+        {
+          "model": "qwen35-27b",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18007,
+          "p95LatencyMs": 18007,
+          "results": [
+            {
+              "role": "workflow_classifier",
+              "case": "pytorch_training",
+              "requestedModel": "qwen35-27b",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18007
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 10705,
+          "p95LatencyMs": 10705,
+          "results": [
+            {
+              "role": "workflow_classifier",
+              "case": "pytorch_training",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 10705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "typo_reviewer",
+      "winner": "qwen3-30b-a3b-instruct-2507",
+      "candidates": [
+        {
+          "model": "gemma4-31b-it",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 2625,
+          "p95LatencyMs": 2625,
+          "results": [
+            {
+              "role": "typo_reviewer",
+              "case": "software_and_language_typos",
+              "requestedModel": "gemma4-31b-it",
+              "returnedModel": "gemma4-31b-it",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 2625
+            }
+          ]
+        },
+        {
+          "model": "qwen3-30b-a3b-instruct-2507",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 890,
+          "p95LatencyMs": 890,
+          "results": [
+            {
+              "role": "typo_reviewer",
+              "case": "software_and_language_typos",
+              "requestedModel": "qwen3-30b-a3b-instruct-2507",
+              "returnedModel": "qwen3-30b-a3b-instruct-2507",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 890
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 2566,
+          "p95LatencyMs": 2566,
+          "results": [
+            {
+              "role": "typo_reviewer",
+              "case": "software_and_language_typos",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 2566
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "scheduler_advisor",
+      "winner": "qwen3-30b-a3b-instruct-2507",
+      "candidates": [
+        {
+          "model": "qwen3-30b-a3b-instruct-2507",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 444,
+          "p95LatencyMs": 444,
+          "results": [
+            {
+              "role": "scheduler_advisor",
+              "case": "sol_general_profile",
+              "requestedModel": "qwen3-30b-a3b-instruct-2507",
+              "returnedModel": "qwen3-30b-a3b-instruct-2507",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 444
+            }
+          ]
+        },
+        {
+          "model": "glm-5-3-flash",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 2953,
+          "p95LatencyMs": 2953,
+          "results": [
+            {
+              "role": "scheduler_advisor",
+              "case": "sol_general_profile",
+              "requestedModel": "glm-5-3-flash",
+              "returnedModel": "glm-5-3-flash",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 2953
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 7640,
+          "p95LatencyMs": 7640,
+          "results": [
+            {
+              "role": "scheduler_advisor",
+              "case": "sol_general_profile",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 7640
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "completion_advisor",
+      "winner": "qwen3-30b-a3b-instruct-2507",
+      "candidates": [
+        {
+          "model": "qwen3-30b-a3b-instruct-2507",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 1750,
+          "p95LatencyMs": 1750,
+          "results": [
+            {
+              "role": "completion_advisor",
+              "case": "openfoam_safe_defaults",
+              "requestedModel": "qwen3-30b-a3b-instruct-2507",
+              "returnedModel": "qwen3-30b-a3b-instruct-2507",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 1750
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-next",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18008,
+          "p95LatencyMs": 18008,
+          "results": [
+            {
+              "role": "completion_advisor",
+              "case": "openfoam_safe_defaults",
+              "requestedModel": "qwen3-coder-next",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18008
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 3677,
+          "p95LatencyMs": 3677,
+          "results": [
+            {
+              "role": "completion_advisor",
+              "case": "openfoam_safe_defaults",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 3677
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "scientific_planner",
+      "winner": "qwen3-coder-30b-a3b-instruct",
+      "candidates": [
+        {
+          "model": "qwen3-235b-a22b-instruct-2507",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18006,
+          "p95LatencyMs": 18006,
+          "results": [
+            {
+              "role": "scientific_planner",
+              "case": "openfoam_information_gain",
+              "requestedModel": "qwen3-235b-a22b-instruct-2507",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18006
+            }
+          ]
+        },
+        {
+          "model": "glm-5-3",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18005,
+          "p95LatencyMs": 18005,
+          "results": [
+            {
+              "role": "scientific_planner",
+              "case": "openfoam_information_gain",
+              "requestedModel": "glm-5-3",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18005
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 8417,
+          "p95LatencyMs": 8417,
+          "results": [
+            {
+              "role": "scientific_planner",
+              "case": "openfoam_information_gain",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 8417
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "resource_critic",
+      "winner": null,
+      "candidates": [
+        {
+          "model": "glm-5-3",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18015,
+          "p95LatencyMs": 18015,
+          "results": [
+            {
+              "role": "resource_critic",
+              "case": "reject_unsupported_openfoam_gpu",
+              "requestedModel": "glm-5-3",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18015
+            }
+          ]
+        },
+        {
+          "model": "qwen3-235b-a22b-instruct-2507",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0.75,
+          "p50LatencyMs": 15905,
+          "p95LatencyMs": 15905,
+          "results": [
+            {
+              "role": "resource_critic",
+              "case": "reject_unsupported_openfoam_gpu",
+              "requestedModel": "qwen3-235b-a22b-instruct-2507",
+              "returnedModel": "qwen3-235b-a22b-instruct-2507",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0.75,
+              "failedChecks": [
+                "schema"
+              ],
+              "latencyMs": 15905
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 1,
+          "meanQuality": 0.75,
+          "p50LatencyMs": 3643,
+          "p95LatencyMs": 3643,
+          "results": [
+            {
+              "role": "resource_critic",
+              "case": "reject_unsupported_openfoam_gpu",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": false,
+              "schemaValid": true,
+              "quality": 0.75,
+              "failedChecks": [
+                "profilingProfile"
+              ],
+              "latencyMs": 3643
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "slurm_critic",
+      "winner": "devstral2-123b",
+      "candidates": [
+        {
+          "model": "devstral2-123b",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 8471,
+          "p95LatencyMs": 8471,
+          "results": [
+            {
+              "role": "slurm_critic",
+              "case": "cpu_directive_mismatch",
+              "requestedModel": "devstral2-123b",
+              "returnedModel": "devstral2-123b",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 8471
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-next",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18005,
+          "p95LatencyMs": 18005,
+          "results": [
+            {
+              "role": "slurm_critic",
+              "case": "cpu_directive_mismatch",
+              "requestedModel": "qwen3-coder-next",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18005
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 10839,
+          "p95LatencyMs": 10839,
+          "results": [
+            {
+              "role": "slurm_critic",
+              "case": "cpu_directive_mismatch",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 10839
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "diagnostician",
+      "winner": "qwen3-coder-30b-a3b-instruct",
+      "candidates": [
+        {
+          "model": "qwen3-235b-a22b-instruct-2507",
+          "cases": 2,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18011,
+          "p95LatencyMs": 18015,
+          "results": [
+            {
+              "role": "diagnostician",
+              "case": "oom",
+              "requestedModel": "qwen3-235b-a22b-instruct-2507",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18015
+            },
+            {
+              "role": "diagnostician",
+              "case": "timeout",
+              "requestedModel": "qwen3-235b-a22b-instruct-2507",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18011
+            }
+          ]
+        },
+        {
+          "model": "glm-5-3",
+          "cases": 2,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18001,
+          "p95LatencyMs": 18012,
+          "results": [
+            {
+              "role": "diagnostician",
+              "case": "oom",
+              "requestedModel": "glm-5-3",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18001
+            },
+            {
+              "role": "diagnostician",
+              "case": "timeout",
+              "requestedModel": "glm-5-3",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18012
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 2,
+          "passedCases": 1,
+          "passRate": 0.5,
+          "schemaPassRate": 1,
+          "meanQuality": 0.8333333333333333,
+          "p50LatencyMs": 2706,
+          "p95LatencyMs": 2944,
+          "results": [
+            {
+              "role": "diagnostician",
+              "case": "oom",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": false,
+              "schemaValid": true,
+              "quality": 0.6666666666666666,
+              "failedChecks": [
+                "confidence"
+              ],
+              "latencyMs": 2944
+            },
+            {
+              "role": "diagnostician",
+              "case": "timeout",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 2706
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "script_explainer",
+      "winner": "qwen3-coder-30b-a3b-instruct",
+      "candidates": [
+        {
+          "model": "qwen3-coder-next",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18016,
+          "p95LatencyMs": 18016,
+          "results": [
+            {
+              "role": "script_explainer",
+              "case": "complete_generated_script",
+              "requestedModel": "qwen3-coder-next",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18016
+            }
+          ]
+        },
+        {
+          "model": "devstral2-123b",
+          "cases": 1,
+          "passedCases": 0,
+          "passRate": 0,
+          "schemaPassRate": 0,
+          "meanQuality": 0,
+          "p50LatencyMs": 18005,
+          "p95LatencyMs": 18005,
+          "results": [
+            {
+              "role": "script_explainer",
+              "case": "complete_generated_script",
+              "requestedModel": "devstral2-123b",
+              "passed": false,
+              "schemaValid": false,
+              "quality": 0,
+              "failedChecks": [
+                "AIR request timed out after 18000 ms."
+              ],
+              "latencyMs": 18005
+            }
+          ]
+        },
+        {
+          "model": "qwen3-coder-30b-a3b-instruct",
+          "cases": 1,
+          "passedCases": 1,
+          "passRate": 1,
+          "schemaPassRate": 1,
+          "meanQuality": 1,
+          "p50LatencyMs": 11419,
+          "p95LatencyMs": 11419,
+          "results": [
+            {
+              "role": "script_explainer",
+              "case": "complete_generated_script",
+              "requestedModel": "qwen3-coder-30b-a3b-instruct",
+              "returnedModel": "qwen3-coder-30b-a3b-instruct",
+              "passed": true,
+              "schemaValid": true,
+              "quality": 1,
+              "failedChecks": [],
+              "latencyMs": 11419
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

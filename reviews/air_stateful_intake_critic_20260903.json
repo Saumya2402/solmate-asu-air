@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-09-03T07:06:42.949Z",
+  "provider": "ASU AIR OpenAI-compatible API",
+  "requestedModel": "qwen3-coder-30b-a3b-instruct",
+  "returnedModel": "qwen3-coder-30b-a3b-instruct",
+  "latencyMs": 89601,
+  "schemaValid": true,
+  "review": {
+    "verdict": "revise",
+    "findings": [
+      {
+        "severity": "high",
+        "file": "src/agent_harness.mjs",
+        "issue": "Later partial or failed AIR responses may erase previously verified workload facts due to improper merging logic in mergeAirFacts function",
+        "recommendation": "Modify mergeAirFacts to ensure that when a field is present in both previous and current facts, the current (newer) value takes precedence, and that previously verified facts are preserved even if subsequent AIR responses fail or return partial data"
+      },
+      {
+        "severity": "high",
+        "file": "src/agent_harness.mjs",
+        "issue": "Inconsistent handling of cluster='sol' vs 'general Sol cluster' where the latter should not imply a partition",
+        "recommendation": "Ensure that when 'general Sol cluster' is mentioned, the cluster field is set to 'sol' but partition is explicitly unset or marked as needing clarification"
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Potential race condition in intake method where multiple concurrent requests might overwrite each other's facts",
+        "recommendation": "Implement proper synchronization or immutable updates to prevent race conditions during concurrent intake operations"
+      },
+      {
+        "severity": "medium",
+        "file": "src/intake.mjs",
+        "issue": "Missing validation for joined job/path values that could lead to incorrect fact extraction",
+        "recommendation": "Add stricter validation in normalizeAirFacts to prevent job names from being constructed by joining unrelated user inputs"
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Inconsistent interpretation of 'MPI n=16' as tasks vs CPUs in fact extraction",
+        "recommendation": "Ensure that 'MPI n=16' consistently maps to tasks field and not cpus, and verify that this mapping is correctly applied throughout the intake pipeline"
+      },
+      {
+        "severity": "low",
+        "file": "src/server.mjs",
+        "issue": "Lack of explicit validation for standalone Linux paths in intake API",
+        "recommendation": "Add validation to ensure that paths provided are indeed standalone Linux paths and not joined with other values"
+      }
+    ],
+    "testGaps": [
+      "Tests for concurrent intake operations",
+      "Tests for race conditions in fact merging",
+      "Tests for handling of 'general Sol cluster' without partition",
+      "Tests for proper handling of joined job/path values",
+      "Tests for 'MPI n=16' interpretation consistency",
+      "Tests for standalone Linux path validation"
+    ]
+  }
+}

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolMate | ASU Compute Concierge</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">S</span>
+      <div><p class="eyebrow">ASU AIR</p><h1>SolMate</h1><p class="subtitle">Compute Concierge</p></div>
+    </div>
+    <div id="modeStatus" class="status" data-mode="connecting"><span class="status-dot"></span><span id="modeLabel">Connecting</span></div>
+  </header>
+
+  <nav class="tabs" aria-label="Workflows">
+    <button class="tab active" type="button" data-tab="plan" aria-selected="true">Plan a job</button>
+    <button class="tab" type="button" data-tab="diagnose" aria-selected="false">Diagnose a failure</button>
+  </nav>
+
+  <main>
+    <section id="planPanel" class="panel active">
+      <div class="work-grid">
+        <section class="column">
+          <div class="section-title"><span>01</span><div><h2>Describe the workload</h2><p>AIR interprets the workflow as you pause, then identifies conflicts and missing decisions.</p></div></div>
+          <label for="description">Research workload</label>
+          <textarea id="description" maxlength="5000" placeholder="Example: Run an OpenFOAM simulation on Sol with 32 GB memory..." aria-describedby="analysisStatus"></textarea>
+          <button id="analyzeButton" class="primary" type="button">Analyze with AIR</button>
+          <p id="analysisStatus" class="analysis-status" aria-live="polite">AIR analysis begins after you pause typing.</p>
+          <p id="planError" class="error" role="alert"></p>
+
+          <form id="specForm" hidden>
+            <div class="divider"></div>
+            <div class="section-title compact"><span>02</span><div><h2>Confirm requirements</h2><p>Recommended values remain advisory until confirmed.</p></div></div>
+            <section id="airInterpretation" class="air-interpretation" hidden aria-live="polite">
+              <p class="interpretation-label">AIR interpretation</p>
+              <h3 id="workflowSummary"></h3>
+              <p id="detectedSoftware" class="software-line"></p>
+              <p id="recommendationBasis" class="recommendation-basis"></p>
+              <div id="correctionBar" class="correction-bar" hidden><span>AIR corrected</span><div id="correctionList"></div></div>
+              <div id="advisorExchange" class="advisor-exchange" hidden>
+                <p class="advisor-name">AIR asks</p>
+                <p id="nextQuestion" class="advisor-question"></p>
+                <label for="followupAnswer">Your answer<textarea id="followupAnswer" class="small" maxlength="1500" placeholder="Add the detail you know; AIR will revise the plan."></textarea></label>
+                <button id="answerQuestionButton" class="secondary" type="button">Send answer to AIR</button>
+                <p id="followupStatus" class="followup-status" aria-live="polite"></p>
+              </div>
+              <div id="conflictBlock" hidden><h4>Conflicts to resolve</h4><ul id="conflictList"></ul></div>
+              <div id="questionBlock" hidden><h4>Other details that would improve the plan</h4><ul id="domainQuestionList"></ul></div>
+            </section>
+            <p id="missingFields" class="missing-note"></p>
+            <div class="recommendation-heading"><span>AIR suggestions</span><button id="confirmAllSuggestions" class="secondary compact-button" type="button" hidden>Confirm all</button></div>
+            <div id="recommendations" class="recommendations"></div>
+            <div id="recommendationReview" class="recommendation-review" hidden></div>
+            <div class="field-grid">
+              <label>Cluster<select name="cluster" required><option value="">Select</option><option value="sol">Sol</option><option value="phoenix">Phoenix</option></select></label>
+              <label>Workload type<select name="workloadType" required><option value="">Select</option><option value="general">General</option><option value="simulation">Simulation / CFD</option><option value="ml_training">ML training</option><option value="distributed">Distributed</option></select></label>
+              <label>Job name<input name="jobName" required placeholder="Not provided"></label>
+              <label>Working directory<input name="workingDirectory" required placeholder="Not provided"></label>
+              <label>CPUs per task<input name="cpus" type="number" min="1" max="4096" required></label>
+              <label>GPUs<input name="gpus" type="number" min="0" max="64" required></label>
+              <label>Nodes<input name="nodes" type="number" min="1" max="256" placeholder="Required for multi-task jobs"></label>
+              <label>MPI tasks / ranks<input name="tasks" type="number" min="1" max="4096" placeholder="Required for MPI jobs"></label>
+              <label>Memory (GB)<input name="memoryGb" type="number" min="1" max="32768" required></label>
+              <label>Walltime<input name="walltime" required placeholder="HH:MM:SS"></label>
+              <label>Partition<select name="partition" required disabled><option value="">Select cluster first</option></select></label>
+              <label>QoS<select name="qos" required disabled><option value="">Select partition first</option></select></label>
+              <label id="accountField">Account, when required<input name="account" placeholder="Check myaccounts on the cluster"></label>
+              <label>Executable<input name="executable" required placeholder="Not provided"></label>
+              <label>Epochs<input name="epochs" type="number" min="1" placeholder="Required for ML training"></label>
+              <label class="wide">Modules, comma separated<input name="modules" placeholder="None provided"></label>
+              <label class="wide">Arguments, one per line<textarea name="args" class="small" placeholder="None provided"></textarea></label>
+              <label>Output path<input name="outputPath" required placeholder="Not provided"></label>
+              <label>Error path<input name="errorPath" required placeholder="Not provided"></label>
+            </div>
+            <div id="resourceEstimate" class="resource-estimate" hidden aria-live="polite"></div>
+            <button id="generateButton" class="primary" type="submit">Validate and generate</button>
+            <p id="generationStatus" class="analysis-status" aria-live="polite"></p>
+            <p id="generationError" class="error" role="alert"></p>
+          </form>
+        </section>
+
+        <section class="column output">
+          <div class="section-title"><span>03</span><div><h2>Reviewed output</h2><p id="agentLine">Complete the guided intake to generate a script.</p></div></div>
+          <div id="emptyState" class="empty-state">Awaiting validated requirements</div>
+          <div id="results" hidden>
+            <div class="toolbar"><div><span id="validationBadge" class="badge"></span><span id="reviewBadge" class="badge neutral"></span></div><button id="downloadButton" class="secondary" type="button">Download</button></div>
+            <dl id="resourceSummary" class="resource-summary"></dl>
+            <div class="output-tabs" role="tablist" aria-label="Generated job tools">
+              <button type="button" class="output-tab active" data-output-tab="script" aria-selected="true">Script</button>
+              <button type="button" class="output-tab" data-output-tab="explain" aria-selected="false">Explain</button>
+              <button type="button" class="output-tab" data-output-tab="check" aria-selected="false">Check</button>
+              <button type="button" class="output-tab" data-output-tab="run" aria-selected="false">Run</button>
+            </div>
+            <section class="output-view active" data-output-view="script">
+              <div class="code-title"><span>Generated Slurm script</span><button id="copyScriptButton" type="button" class="icon-button" title="Copy script" aria-label="Copy script">Copy</button></div>
+              <pre><code id="scriptOutput"></code></pre>
+              <details class="compact-details"><summary>Independent review</summary><ul id="reviewList"></ul></details>
+            </section>
+            <section class="output-view" data-output-view="explain" hidden>
+              <div class="view-heading"><h3>Line-by-line explanation</h3><span id="explanationAgent"></span></div>
+              <ol id="scriptExplanations" class="explanation-list"></ol>
+            </section>
+            <section class="output-view" data-output-view="check" hidden>
+              <div id="firstRunPlan" class="first-run"></div>
+              <div id="beginnerWarningBlock"><h3>Things to verify</h3><ul id="beginnerWarnings"></ul></div>
+              <h3>Environment checks</h3>
+              <ul id="readinessChecks" class="command-list compact-commands"></ul>
+            </section>
+            <section class="output-view" data-output-view="run" hidden>
+              <form id="handoffForm" class="handoff-form">
+                <label>ASURITE<input name="asurite" required></label>
+                <label>Script location<select name="transferMode"><option value="upload">Upload from this computer</option><option value="present">Already on Sol</option><option value="portal">Use the Sol web portal</option></select></label>
+                <label>Local script path<input name="localPath" placeholder="C:\\work\\image-training.slurm"></label>
+                <label>Remote directory<input name="remoteDirectory" required placeholder="/scratch/asurite/project"></label>
+                <label>Job ID, after submission<input name="jobId" inputmode="numeric" placeholder="Optional"></label>
+                <button class="secondary" type="submit">Build command steps</button>
+              </form>
+              <p id="handoffError" class="error" role="alert"></p>
+              <ol id="handoffSteps" class="command-list"></ol>
+              <label id="submissionAcknowledgement" class="acknowledgement" hidden><input type="checkbox">I reviewed the script and ran the syntax and Slurm test-only checks.</label>
+              <div id="submitStep" hidden></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="diagnosePanel" class="panel">
+      <div class="work-grid">
+        <form id="diagnosisForm" class="column">
+          <div class="section-title"><span>01</span><div><h2>Supply failure evidence</h2><p>Exact lines and metadata keep the diagnosis auditable.</p></div></div>
+          <label>Cluster<select name="cluster"><option value="sol">Sol</option><option value="phoenix">Phoenix</option><option value="unknown">Unknown</option></select></label>
+          <label>Slurm script<textarea name="script" class="small" placeholder="#!/usr/bin/env bash"></textarea></label>
+          <button id="useGeneratedEvidenceButton" class="secondary" type="button" disabled>Use generated SolMate script</button>
+          <label>Job log<textarea name="log" required maxlength="20000">slurmstepd: error: Detected 1 oom_kill event in StepId=42.batch</textarea></label>
+          <div class="field-grid">
+            <label>State<input name="State" placeholder="OUT_OF_MEMORY"></label>
+            <label>Exit code<input name="ExitCode" placeholder="125:0"></label>
+            <label>Requested memory<input name="ReqMem" placeholder="32G"></label>
+            <label>Maximum RSS<input name="MaxRSS" placeholder="32G"></label>
+            <label>Scheduler reason<input name="Reason" placeholder="OutOfMemory"></label>
+            <label>Elapsed time<input name="Elapsed" placeholder="00:42:10"></label>
+            <label>Allocated resources<input name="AllocTRES" placeholder="cpu=16,mem=32G"></label>
+          </div>
+          <button id="diagnoseButton" class="primary" type="submit">Diagnose with AIR</button>
+          <p id="diagnosisError" class="error" role="alert"></p>
+        </form>
+        <section class="column output">
+          <div class="section-title"><span>02</span><div><h2>Evidence-based finding</h2><p id="diagnosisAgent">No diagnosis yet.</p></div></div>
+          <div id="diagnosisEmpty" class="empty-state">Awaiting job evidence</div>
+          <div id="diagnosisResult" hidden>
+            <div class="toolbar"><span id="confidenceBadge" class="badge"></span><span id="categoryBadge" class="badge neutral"></span></div>
+            <h3 id="diagnosisExplanation"></h3>
+            <div class="evidence-block"><h3>Cited evidence</h3><ol id="evidenceList"></ol></div>
+            <div class="evidence-block"><h3>Deterministic checks</h3><ul id="deterministicFindings"></ul></div>
+            <div class="evidence-block"><h3>Other possible causes</h3><ul id="diagnosisAlternatives"></ul></div>
+            <div class="evidence-block"><h3>Evidence still needed</h3><ul id="missingEvidence"></ul></div>
+            <div class="review"><h3>Recommended next actions</h3><ul id="diagnosisRecommendations"></ul></div>
+            <div class="review"><h3>Applicable ASU guidance</h3><ul id="diagnosisSources"></ul></div>
+            <section id="repairComparison" class="repair-comparison" hidden>
+              <h3>Validated repair proposal</h3>
+              <div><div><h4>Original</h4><pre><code id="originalScript"></code></pre></div><div><h4>Proposed</h4><pre><code id="proposedScript"></code></pre></div></div>
+            </section>
+            <p id="redactionNote" class="muted"></p>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <footer>Proposed scripts require human review. SolMate never submits jobs or stores cluster credentials.</footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-03",
+  "provider": "ASU AIR OpenAI-compatible API",
+  "fixture": "sanitized OpenFOAM MPI workload matching the reported UI failure",
+  "intake": {
+    "cpusPerTask": 1,
+    "mpiTasks": 16,
+    "recommendations": {
+      "jobName": "pimpleFoam_sim",
+      "workingDirectory": "/scratch/asurite/sparky",
+      "outputPath": "/scratch/asurite/sparky/%x_%j.out",
+      "errorPath": "/scratch/asurite/sparky/%x_%j.err",
+      "partition": "public",
+      "qos": "public",
+      "executable": "pimpleFoam",
+      "modules": [],
+      "args": [],
+      "nodes": 1,
+      "gpus": 0
+    },
+    "unresolvedFields": [],
+    "reviewVerdict": "approve"
+  },
+  "generation": {
+    "status": "reviewed",
+    "validationValid": true,
+    "criticModel": "qwen3-coder-30b-a3b-instruct",
+    "scriptChecks": {
+      "jobName": true,
+      "cpusPerTask": true,
+      "mpiTasks": true,
+      "outputPath": true
+    }
+  }
+}

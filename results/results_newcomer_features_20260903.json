@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-09-03T11:48:02.9149334-07:00",
+  "scope": "Sanitized newcomer-feature validation with no credentials or private research input.",
+  "automated": {
+    "tests": { "passed": 81, "failed": 0, "skipped": 0 },
+    "syntaxFilesPassed": 32,
+    "mockDemo": "passed",
+    "secretPatternScan": "clean"
+  },
+  "liveAirTypoReview": {
+    "model": "qwen3-coder-30b-a3b-instruct",
+    "inputCase": "Synthetic misspelled OpenFOAM simulation request",
+    "corrections": ["OpenFom -> OpenFOAM", "simualtion -> simulation"],
+    "falseCapitalizationCorrectionSuppressed": "Sol -> SOL",
+    "interpretedSoftware": "OpenFOAM",
+    "interpretedWorkloadType": "simulation",
+    "preservedJobName": "typo_demo",
+    "typoReviewerLatencyMs": 7404
+  },
+  "liveAirScriptExplanation": {
+    "model": "qwen3-coder-30b-a3b-instruct",
+    "generationStatus": "reviewed",
+    "deterministicValidation": true,
+    "criticVerdict": "approve",
+    "exactLineExplanations": 16,
+    "explainerLatencyMs": 11285,
+    "resourceMetrics": { "totalCpuCores": 8, "coreHours": 16 },
+    "readinessChecks": 5,
+    "beginnerWarnings": 1
+  },
+  "uiContract": {
+    "compactRecommendationRows": true,
+    "collapsedRecommendationDetails": true,
+    "outputTabs": ["Script", "Explain", "Check", "Run"],
+    "preGenerationResourceEstimate": true,
+    "technicalCorrectionsRequireConfirmation": true
+  },
+  "notVerified": [
+    "Rendered desktop, tablet, and mobile screenshots because no controllable browser was connected",
+    "Human-controlled environment commands or sbatch --test-only on Sol"
+  ]
+}

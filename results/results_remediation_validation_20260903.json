@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-09-03T11:22:06.8581173-07:00",
+  "scope": "Sanitized remediation validation; no prompts, credentials, or raw upstream errors are stored.",
+  "automated": {
+    "tests": { "passed": 74, "failed": 0, "skipped": 0 },
+    "syntaxFilesPassed": 30,
+    "focusedFixtureAndSecurityTests": { "passed": 10, "failed": 0 },
+    "mockDemo": "passed",
+    "secretPatternScan": "clean"
+  },
+  "liveAir": {
+    "provider": "ASU AIR OpenAI-compatible API",
+    "model": "qwen3-coder-30b-a3b-instruct",
+    "preflight": { "schemaValid": true, "latencyMs": 1403 },
+    "goldenPath": {
+      "planner": { "latencyMs": 26208, "totalTokens": 1537 },
+      "generationCritic": { "latencyMs": 3686, "totalTokens": 714, "verdict": "approve", "deterministicValidation": true },
+      "diagnostician": { "latencyMs": 2807, "totalTokens": 993, "category": "OUT_OF_MEMORY", "confidence": "confirmed", "evidenceValidated": true }
+    },
+    "sourceCritic": {
+      "model": "qwen3-coder-30b-a3b-instruct",
+      "latencyMs": 35634,
+      "totalTokens": 36823,
+      "reportedFindings": 7,
+      "acceptedAfterHumanReview": 2,
+      "rejectedAfterHumanReview": 5
+    },
+    "postFixSourceCritic": {
+      "artifact": "reviews/air_postfix_critic_20260903.json",
+      "model": "qwen3-coder-30b-a3b-instruct",
+      "latencyMs": 48745,
+      "totalTokens": 37736,
+      "verdict": "revise",
+      "reportedFindings": 8,
+      "newDefectsAcceptedAfterHumanReview": 0,
+      "knownLimitationsRetained": 1,
+      "rejectedOrAlreadyResolvedAfterHumanReview": 7,
+      "note": "The report is internally inconsistent and names supplied regression tests as missing; its low-severity hardware-specificity concern remains an explicitly disclosed researcher-verification boundary."
+    }
+  },
+  "liveHttp": {
+    "mode": "live",
+    "configuredRoles": 7,
+    "initialHandoffContainsSubmit": false,
+    "signedAcknowledgementTokenIssued": true,
+    "acknowledgedHandoffContainsSubmit": true,
+    "unresolvedJobIdCommandsDisabledByContract": 2
+  },
+  "notVerified": [
+    "Responsive browser screenshots because no controllable browser was connected",
+    "Three repeated live golden-path runs",
+    "Recorded backup demonstration",
+    "Human-controlled sbatch --test-only on Sol",
+    "Full multi-model fixture benchmark"
+  ]
+}

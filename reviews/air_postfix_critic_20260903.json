@@ -1,0 +1,92 @@
+{
+  "generatedAt": "2026-09-03T18:24:28.482Z",
+  "provider": "ASU AIR OpenAI-compatible API",
+  "requestedModel": "qwen3-coder-30b-a3b-instruct",
+  "returnedModel": "qwen3-coder-30b-a3b-instruct",
+  "latencyMs": 48745,
+  "usage": {
+    "completion_tokens": 894,
+    "prompt_tokens": 36842,
+    "total_tokens": 37736
+  },
+  "schemaValid": true,
+  "review": {
+    "verdict": "revise",
+    "findings": [
+      {
+        "severity": "high",
+        "file": "src/job_spec.mjs",
+        "issue": "Slurm directive injection vulnerability in account field",
+        "evidence": "The account field validation uses SAFE_NAME regex which allows newline characters that could be used for directive injection. The renderSlurmScript function directly interpolates account value without additional sanitization.",
+        "recommendation": "Enhance account field validation to reject newline characters and implement additional sanitization for Slurm directive injection prevention."
+      },
+      {
+        "severity": "high",
+        "file": "src/agent_harness.mjs",
+        "issue": "Incomplete browser draft precedence handling",
+        "evidence": "The formDraft handling in the UI doesn't properly distinguish between user edits and AIR suggestions, potentially causing stale drafts to override user inputs.",
+        "recommendation": "Implement proper draft precedence logic that prioritizes user inputs over AIR suggestions and clears drafts appropriately."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Recommendation confirmation bound to exact values not enforced",
+        "evidence": "The verifyRecommendationConfirmations function validates exact value matches but doesn't enforce that all recommended fields must be confirmed or changed before generation.",
+        "recommendation": "Add explicit validation in the generation flow to ensure all AIR recommendations are either confirmed or modified before proceeding."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Critic rejection enforcement not fully implemented",
+        "evidence": "The critic validation in validateReview function doesn't fully enforce that policy citations must come from allowed sources, leaving potential for unauthorized policy claims.",
+        "recommendation": "Strengthen policy source validation in critic responses to ensure all policy citations reference exactly allowed sources."
+      },
+      {
+        "severity": "medium",
+        "file": "src/diagnosis.mjs",
+        "issue": "Incomplete diagnosis-payload redaction",
+        "evidence": "While redactSensitive function handles many patterns, it doesn't fully cover all potential credential-like patterns that might appear in job logs or metadata.",
+        "recommendation": "Expand redactSensitive to cover additional credential patterns including potential API keys, tokens, and other sensitive identifiers."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Handoff acknowledgement and unresolved placeholders",
+        "evidence": "The handoff flow doesn't properly handle cases where job ID is missing but required for certain steps, potentially leading to unresolved placeholders.",
+        "recommendation": "Implement better validation and error handling for handoff steps that require job IDs to ensure proper placeholder resolution."
+      },
+      {
+        "severity": "low",
+        "file": "src/job_spec.mjs",
+        "issue": "Per-node CPU/GPU/memory checks could be more precise",
+        "evidence": "The applyHardwareLimits function calculates coresPerNode but doesn't fully validate against actual hardware constraints for all clusters.",
+        "recommendation": "Add more comprehensive hardware constraint validation that considers specific cluster capabilities beyond just core counts."
+      },
+      {
+        "severity": "low",
+        "file": "src/agent_harness.mjs",
+        "issue": "Cancellation races in intake processing",
+        "evidence": "The intake processing uses AbortController but doesn't fully prevent race conditions between multiple rapid inputs.",
+        "recommendation": "Implement better request deduplication and cancellation handling to prevent race conditions during rapid user input."
+      }
+    ],
+    "passedChecks": [
+      "allowlisted schemas",
+      "exact partition/QoS validation",
+      "account entitlement handling",
+      "stale browser draft precedence",
+      "exact evidence and corroboration",
+      "safe repair scope",
+      "truthful error classification"
+    ],
+    "testGaps": [
+      "Slurm directive injection testing",
+      "Browser draft precedence edge cases",
+      "Recommendation confirmation enforcement",
+      "Critic rejection enforcement",
+      "Complete diagnosis-payload redaction coverage",
+      "Handoff acknowledgment edge cases",
+      "Cancellation race condition testing"
+    ]
+  }
+}

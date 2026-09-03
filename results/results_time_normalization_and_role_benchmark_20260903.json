@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-03",
+  "timeNormalization": {
+    "input": "5000 minutes",
+    "expectedWalltime": "83:20:00",
+    "liveWalltime": "83:20:00",
+    "liveEvidence": "5000 minutes",
+    "missingAfterIntake": false,
+    "liveModel": "qwen3-coder-30b-a3b-instruct",
+    "livePlannerLatencyMs": 14698
+  },
+  "automatedTests": {
+    "passed": 89,
+    "failed": 0,
+    "skipped": 0
+  },
+  "roleBenchmark": {
+    "role": "fact_extractor",
+    "execution": "three candidates concurrently per sanitized fixture",
+    "leadingCandidate": "qwen3-30b-a3b-instruct-2507",
+    "leadingSchemaPassRate": 1,
+    "leadingFieldRecall": 0.9565217391304348,
+    "runtimeDefaultChanged": false,
+    "artifacts": [
+      "results/results_air_role_benchmark_20260903_2035.json",
+      "results/results_air_role_benchmark_20260903_203653.json"
+    ]
+  },
+  "containsSensitiveInputs": false,
+  "containsRawModelResponses": false
+}

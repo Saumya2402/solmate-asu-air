@@ -1,0 +1,162 @@
+{
+  "version": "2026-09-02",
+  "checkedAt": "2026-09-02",
+  "productGuardrails": {
+    "cpus": { "min": 1, "max": 4096 },
+    "gpus": { "min": 0, "max": 64 },
+    "memoryGb": { "min": 1, "max": 32768 },
+    "walltimeHours": { "min": 0.0167, "max": 336 },
+    "epochs": { "min": 1, "max": 1000000 }
+  },
+  "hardware": {
+    "sol": {
+      "standard": { "coresPerNode": 128, "memoryGbPerNode": 512, "gpusPerNode": 0 },
+      "highMemory": { "coresPerNode": 128, "memoryGbPerNode": 2048, "gpusPerNode": 0 },
+      "gpu": { "coresPerNode": 48, "memoryGbPerNode": 512, "gpusPerNode": 4 }
+    },
+    "phoenix": {
+      "standard": { "coresPerNode": 28, "memoryGbPerNode": 128, "gpusPerNode": 0 },
+      "highMemory": { "coresPerNode": 56, "memoryGbPerNode": 1500, "gpusPerNode": 0 },
+      "gpu": { "coresPerNode": 40, "memoryGbPerNode": 360, "gpusPerNode": 4 }
+    }
+  },
+  "profiles": [
+    {
+      "id": "sol-public-class",
+      "cluster": "sol",
+      "partition": "public",
+      "qos": "class",
+      "requiresAccount": true,
+      "limits": { "cpus": 32, "gpus": 4, "memoryGb": 320, "walltimeHours": 24 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "sol-htc-public",
+      "cluster": "sol",
+      "partition": "htc",
+      "qos": "public",
+      "limits": { "walltimeHours": 4 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "sol-general-private",
+      "cluster": "sol",
+      "partition": "general",
+      "qos": "private",
+      "limits": { "walltimeHours": 168 },
+      "notes": "Preemptible community access to privately owned nodes.",
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "sol-highmem-public",
+      "cluster": "sol",
+      "partition": "highmem",
+      "qos": "public",
+      "limits": { "walltimeHours": 48, "memoryGb": 2048 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "sol-lightwork-public",
+      "cluster": "sol",
+      "partition": "lightwork",
+      "qos": "public",
+      "limits": { "cpus": 8, "walltimeHours": 24 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "sol-public-public",
+      "cluster": "sol",
+      "partition": "public",
+      "qos": "public",
+      "limits": { "walltimeHours": 168 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "phoenix-public-public",
+      "cluster": "phoenix",
+      "partition": "public",
+      "qos": "public",
+      "limits": { "walltimeHours": 168 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "phoenix-htc-public",
+      "cluster": "phoenix",
+      "partition": "htc",
+      "qos": "public",
+      "limits": { "walltimeHours": 4 },
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    },
+    {
+      "id": "phoenix-general-private",
+      "cluster": "phoenix",
+      "partition": "general",
+      "qos": "private",
+      "limits": { "walltimeHours": 168 },
+      "notes": "Preemptible community access to privately owned nodes.",
+      "source": "https://docs.rc.asu.edu/partitions-and-qos/"
+    }
+  ],
+  "diagnosisRules": [
+    {
+      "id": "slurm-oom",
+      "cluster": "any",
+      "category": "OUT_OF_MEMORY",
+      "requiresCorroboration": true,
+      "triggers": ["oom_kill", "out of memory"],
+      "corroboration": ["State=OUT_OF_MEMORY", "MaxRSS near ReqMem"],
+      "exclusions": ["Exit code alone"],
+      "source": "https://docs.rc.asu.edu/job-statistics/"
+    },
+    {
+      "id": "slurm-timeout",
+      "cluster": "any",
+      "category": "TIMEOUT",
+      "requiresCorroboration": true,
+      "triggers": ["time limit", "timeout"],
+      "corroboration": ["State=TIMEOUT"],
+      "exclusions": ["Application timeout without Slurm state"],
+      "source": "https://docs.rc.asu.edu/jobstates/"
+    },
+    {
+      "id": "slurm-invalid-feature",
+      "cluster": "any",
+      "category": "INVALID_PARTITION_OR_QOS_OR_CONSTRAINT",
+      "requiresCorroboration": true,
+      "triggers": ["Invalid feature specification"],
+      "corroboration": ["Submitted partition, QoS, and constraint directives"],
+      "exclusions": ["Do not select one cause from the message alone"],
+      "source": "https://docs.rc.asu.edu/slurm-sbatch/"
+    },
+    {
+      "id": "slurm-command-not-found",
+      "cluster": "any",
+      "category": "COMMAND_NOT_FOUND_OR_MODULE",
+      "requiresCorroboration": false,
+      "triggers": ["command not found", "module not found"],
+      "corroboration": [],
+      "exclusions": ["Do not invent a replacement module name"],
+      "source": "https://docs.rc.asu.edu/slurm-sbatch/"
+    },
+    {
+      "id": "slurm-pending",
+      "cluster": "any",
+      "category": "PENDING_NOT_FAILED",
+      "requiresCorroboration": false,
+      "triggers": ["Priority", "Resources", "QOSMax", "ReqNodeNotAvail"],
+      "corroboration": ["State=PENDING"],
+      "exclusions": ["Do not describe pending work as a failed job"],
+      "source": "https://docs.rc.asu.edu/jobstates/"
+    },
+    {
+      "id": "slurm-infrastructure",
+      "cluster": "any",
+      "category": "INFRASTRUCTURE_OR_ADMIN",
+      "requiresCorroboration": false,
+      "triggers": ["drain", "maintenance", "node down"],
+      "corroboration": [],
+      "exclusions": ["Do not rewrite the application command"],
+      "source": "https://docs.rc.asu.edu/jobstates/"
+    }
+  ]
+}

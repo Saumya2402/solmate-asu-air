@@ -1,0 +1,169 @@
+{
+  "generatedAt": "2026-09-03T20:36:53.367Z",
+  "endpoint": "https://openai.rc.asu.edu/v1/chat/completions",
+  "role": "fact_extractor",
+  "execution": "candidate models run concurrently per sanitized fixture",
+  "containsPrompts": false,
+  "containsRawResponses": false,
+  "candidates": [
+    {
+      "model": "glm-5-3-flash",
+      "cases": 3,
+      "passedCases": 0,
+      "schemaPassRate": 0.6666666666666666,
+      "fieldRecall": 0.5652173913043478,
+      "p50LatencyMs": 9262,
+      "p95LatencyMs": 30014,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": false,
+          "schemaValid": false,
+          "validFields": 0,
+          "expectedFields": 8,
+          "fieldRecall": 0,
+          "latencyMs": 30014,
+          "error": "AIR request timed out after 30000 ms."
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "workingDirectory"
+          ],
+          "latencyMs": 9262,
+          "returnedModel": "glm-5-3-flash"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 6,
+          "expectedFields": 7,
+          "fieldRecall": 0.8571428571428571,
+          "incorrectFields": [
+            "workingDirectory"
+          ],
+          "latencyMs": 8393,
+          "returnedModel": "glm-5-3-flash"
+        }
+      ]
+    },
+    {
+      "model": "qwen3-30b-a3b-instruct-2507",
+      "cases": 3,
+      "passedCases": 2,
+      "schemaPassRate": 1,
+      "fieldRecall": 0.9565217391304348,
+      "p50LatencyMs": 84,
+      "p95LatencyMs": 6548,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": true,
+          "schemaValid": true,
+          "validFields": 8,
+          "expectedFields": 8,
+          "fieldRecall": 1,
+          "incorrectFields": [],
+          "latencyMs": 84,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 45,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": true,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 7,
+          "fieldRecall": 1,
+          "incorrectFields": [],
+          "latencyMs": 6548,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        }
+      ]
+    },
+    {
+      "model": "qwen3-coder-30b-a3b-instruct",
+      "cases": 3,
+      "passedCases": 1,
+      "schemaPassRate": 1,
+      "fieldRecall": 0.9130434782608695,
+      "p50LatencyMs": 3613,
+      "p95LatencyMs": 3642,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": true,
+          "schemaValid": true,
+          "validFields": 8,
+          "expectedFields": 8,
+          "fieldRecall": 1,
+          "incorrectFields": [],
+          "latencyMs": 3613,
+          "returnedModel": "qwen3-coder-30b-a3b-instruct"
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 3642,
+          "returnedModel": "qwen3-coder-30b-a3b-instruct"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 6,
+          "expectedFields": 7,
+          "fieldRecall": 0.8571428571428571,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 3534,
+          "returnedModel": "qwen3-coder-30b-a3b-instruct"
+        }
+      ]
+    }
+  ],
+  "batches": [
+    {
+      "fixture": "pytorch_minutes",
+      "elapsedMs": 30015,
+      "concurrentModels": 3
+    },
+    {
+      "fixture": "openfoam_mpi",
+      "elapsedMs": 9263,
+      "concurrentModels": 3
+    },
+    {
+      "fixture": "phoenix_cpu",
+      "elapsedMs": 8394,
+      "concurrentModels": 3
+    }
+  ],
+  "elapsedMs": 47673
+}

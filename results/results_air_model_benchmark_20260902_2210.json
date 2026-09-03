@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-02",
+  "endpoint": "https://openai.rc.asu.edu/v1/chat/completions",
+  "containsSensitiveInputs": false,
+  "candidates": [
+    {
+      "model": "qwen3-coder-next",
+      "structuredPreflight": { "passed": true, "latencyMs": 1143 },
+      "fullWorkflow": { "passed": false, "failure": "intake timeout at 45000 ms" }
+    },
+    {
+      "model": "north-mini-code",
+      "structuredPreflight": { "passed": true, "latencyMs": 939 },
+      "fullWorkflow": { "passed": false, "failure": "empty assistant content during bounded intake" }
+    },
+    {
+      "model": "qwen3-coder-30b-a3b-instruct",
+      "structuredPreflight": { "passed": true, "latencyMs": 1519 },
+      "fullWorkflow": {
+        "passed": true,
+        "plannerLatencyMs": 6951,
+        "criticLatencyMs": 2928,
+        "diagnosticianLatencyMs": 8864,
+        "schemaValid": true,
+        "evidenceValid": true
+      }
+    }
+  ],
+  "selected": {
+    "planner": "qwen3-coder-30b-a3b-instruct",
+    "critic": "qwen3-coder-30b-a3b-instruct",
+    "diagnostician": "qwen3-coder-30b-a3b-instruct"
+  },
+  "scope": "Small compatibility and latency probe; not a comprehensive model-quality benchmark."
+}

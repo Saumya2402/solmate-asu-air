@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-09-03T18:17:04.840Z",
+  "provider": "ASU AIR OpenAI-compatible API",
+  "requestedModel": "qwen3-coder-30b-a3b-instruct",
+  "returnedModel": "qwen3-coder-30b-a3b-instruct",
+  "latencyMs": 35634,
+  "usage": {
+    "completion_tokens": 789,
+    "prompt_tokens": 36034,
+    "total_tokens": 36823
+  },
+  "schemaValid": true,
+  "review": {
+    "verdict": "revise",
+    "findings": [
+      {
+        "severity": "high",
+        "file": "src/job_spec.mjs",
+        "issue": "Slurm directive injection vulnerability in account field",
+        "evidence": "The account field validation uses SAFE_NAME regex which allows newline characters that could be used for directive injection. The renderSlurmScript function directly interpolates account value without additional sanitization.",
+        "recommendation": "Enhance account field validation to reject newline characters and implement additional sanitization in renderSlurmScript for account field."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Incomplete browser draft precedence handling",
+        "evidence": "The formDraft handling in the UI doesn't properly distinguish between user edits and AIR suggestions, potentially causing stale drafts to override user inputs.",
+        "recommendation": "Implement stricter draft precedence logic that prioritizes user inputs over AIR suggestions and clears drafts appropriately."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Recommendation confirmation bound to exact values not enforced",
+        "evidence": "The verifyRecommendationConfirmations function validates exact value matches but doesn't enforce that all recommended fields are confirmed before allowing generation.",
+        "recommendation": "Add validation in the generation flow to ensure all recommended fields are either confirmed or manually overridden."
+      },
+      {
+        "severity": "high",
+        "file": "src/diagnosis.mjs",
+        "issue": "Incomplete diagnosis-payload redaction",
+        "evidence": "While redactSensitive removes some patterns, it doesn't fully redact all potential sensitive information including job IDs, account names, and hostnames that might be in the log context.",
+        "recommendation": "Expand redactSensitive to cover additional sensitive patterns including job IDs, account names, and hostname references."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Handoff acknowledgment and unresolved placeholders",
+        "evidence": "The handoff logic doesn't properly handle cases where acknowledgments are required but not properly validated before enabling submission steps.",
+        "recommendation": "Add explicit validation for acknowledgment states and ensure unresolved placeholders are properly handled."
+      },
+      {
+        "severity": "medium",
+        "file": "src/agent_harness.mjs",
+        "issue": "Cancellation races in intake processing",
+        "evidence": "The intake processing uses AbortController but doesn't fully prevent race conditions between multiple rapid inputs.",
+        "recommendation": "Implement proper sequence tracking to prevent race conditions between rapid successive intake requests."
+      },
+      {
+        "severity": "high",
+        "file": "src/agent_harness.mjs",
+        "issue": "Critic rejection enforcement not properly implemented",
+        "evidence": "The validateReview function allows policy citations from external sources even though it should only accept those from supplied profiles.",
+        "recommendation": "Strengthen validateReview to strictly enforce policy source validation against the supplied profile sources."
+      }
+    ],
+    "passedChecks": [
+      "allowlisted schemas",
+      "exact partition/QoS validation",
+      "account entitlement handling",
+      "per-node CPU/GPU/memory checks",
+      "exact evidence and corroboration",
+      "safe repair scope",
+      "truthful error classification"
+    ],
+    "testGaps": [
+      "Slurm directive injection testing",
+      "Browser draft precedence edge cases",
+      "Recommendation confirmation enforcement",
+      "Complete diagnosis payload redaction",
+      "Handoff acknowledgment validation",
+      "Cancellation race condition testing",
+      "Critic rejection enforcement testing"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "cpu-python",
+    "description": "Run analysis.py on Sol with 4 CPUs, 16 GB memory, no GPU, and one hour.",
+    "expectedType": "general",
+    "expectedCluster": "sol",
+    "spec": { "cluster": "sol", "workloadType": "general", "jobName": "cpu-analysis", "workingDirectory": "/scratch/demo/cpu", "cpus": 4, "gpus": 0, "memoryGb": 16, "walltime": "01:00:00", "partition": "public", "qos": "public", "outputPath": "%x.%j.out", "errorPath": "%x.%j.err", "modules": [], "executable": "python", "args": ["analysis.py"], "rationale": "A small CPU analysis provides a controlled first execution." }
+  },
+  {
+    "id": "gpu-training",
+    "description": "Train a PyTorch model on Sol with one GPU, 8 CPUs, 32 GB memory, two hours, and 10 epochs.",
+    "expectedType": "ml_training",
+    "expectedCluster": "sol",
+    "spec": { "cluster": "sol", "workloadType": "ml_training", "jobName": "gpu-training", "workingDirectory": "/scratch/demo/training", "cpus": 8, "gpus": 1, "memoryGb": 32, "walltime": "02:00:00", "partition": "public", "qos": "public", "outputPath": "%x.%j.out", "errorPath": "%x.%j.err", "modules": ["python", "cuda"], "executable": "python", "args": ["train.py", "--epochs", "10"], "epochs": 10, "rationale": "A single-GPU training run provides a measurable starting allocation." }
+  },
+  {
+    "id": "missing-resources",
+    "description": "Run my simulation on Sol.",
+    "expectedType": "simulation",
+    "expectedCluster": "sol",
+    "expectsMissingFields": true
+  },
+  {
+    "id": "distributed",
+    "description": "Run model.py with MPI across four nodes and 16 ranks on Sol, using one CPU per rank, 32 GB memory, no GPUs, and two hours.",
+    "expectedType": "distributed",
+    "expectedCluster": "sol",
+    "spec": { "cluster": "sol", "workloadType": "distributed", "jobName": "mpi-model", "workingDirectory": "/scratch/demo/mpi", "cpus": 1, "gpus": 0, "nodes": 4, "tasks": 16, "memoryGb": 32, "walltime": "02:00:00", "partition": "public", "qos": "public", "outputPath": "%x.%j.out", "errorPath": "%x.%j.err", "modules": ["openmpi"], "executable": "python", "args": ["model.py"], "rationale": "Four ranks per node is a conservative distributed validation case." }
+  },
+  {
+    "id": "phoenix-genomics",
+    "description": "Run workflow.sh for a CPU genomics workflow on Phoenix with 8 CPUs, 32 GB memory, no GPU, and four hours.",
+    "expectedType": "general",
+    "expectedCluster": "phoenix",
+    "spec": { "cluster": "phoenix", "workloadType": "general", "jobName": "genomics", "workingDirectory": "/scratch/demo/genomics", "cpus": 8, "gpus": 0, "memoryGb": 32, "walltime": "04:00:00", "partition": "public", "qos": "public", "outputPath": "%x.%j.out", "errorPath": "%x.%j.err", "modules": [], "executable": "bash", "args": ["workflow.sh"], "rationale": "The request fits within one documented Phoenix standard node." }
+  },
+  {
+    "id": "openfoam-mpi",
+    "description": "Run pimpleFoam in /scratch/demo/openfoam on Sol as job of13 with MPI n=16, one CPU per rank, 32 GB memory, no GPU, and two hours.",
+    "expectedType": "simulation",
+    "expectedCluster": "sol",
+    "spec": { "cluster": "sol", "workloadType": "simulation", "jobName": "of13", "workingDirectory": "/scratch/demo/openfoam", "cpus": 1, "gpus": 0, "nodes": 1, "tasks": 16, "memoryGb": 32, "walltime": "02:00:00", "partition": "public", "qos": "public", "outputPath": "%x.%j.out", "errorPath": "%x.%j.err", "modules": [], "executable": "pimpleFoam", "args": ["-parallel"], "rationale": "A one-node MPI run is a bounded OpenFOAM profiling configuration." }
+  }
+]

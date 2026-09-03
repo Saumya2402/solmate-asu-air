@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-03",
+  "feature": "dependent scheduler option selects",
+  "rulesSource": "knowledge/asu_rc_rules.json",
+  "automatedTests": {
+    "passed": 84,
+    "failed": 0,
+    "skipped": 0
+  },
+  "syntaxFilesChecked": 25,
+  "secretScan": "pass",
+  "healthEndpoint": "pass",
+  "schedulerPairs": [
+    { "cluster": "phoenix", "partition": "general", "qos": "private", "requiresAccount": false },
+    { "cluster": "phoenix", "partition": "htc", "qos": "public", "requiresAccount": false },
+    { "cluster": "phoenix", "partition": "public", "qos": "public", "requiresAccount": false },
+    { "cluster": "sol", "partition": "general", "qos": "private", "requiresAccount": false },
+    { "cluster": "sol", "partition": "highmem", "qos": "public", "requiresAccount": false },
+    { "cluster": "sol", "partition": "htc", "qos": "public", "requiresAccount": false },
+    { "cluster": "sol", "partition": "lightwork", "qos": "public", "requiresAccount": false },
+    { "cluster": "sol", "partition": "public", "qos": "class", "requiresAccount": true },
+    { "cluster": "sol", "partition": "public", "qos": "public", "requiresAccount": false }
+  ],
+  "visualValidation": {
+    "status": "not_run",
+    "reason": "No browser connection was available to this session."
+  }
+}

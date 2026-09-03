@@ -1,0 +1,26 @@
+{
+  "name": "asu-air-compute-concierge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ASU AIR-powered Slurm job planning and failure diagnosis prototype",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "start:mock": "node scripts/start_server.mjs mock",
+    "start:live": "node scripts/start_server.mjs live",
+    "preflight:live": "node scripts/air_preflight.mjs",
+    "benchmark:models": "node scripts/model_benchmark.mjs",
+    "benchmark:roles": "node scripts/role_model_benchmark.mjs",
+    "benchmark:role-suite": "node scripts/role_suite_benchmark.mjs",
+    "demo:mock": "node scripts/demo_run.mjs --mock",
+    "demo:live": "node scripts/demo_run.mjs",
+    "probe:openfoam:live": "node scripts/openfoam_probe.mjs",
+    "review:state:live": "node scripts/source_review_probe.mjs",
+    "review:remediation:live": "node scripts/remediation_review.mjs",
+    "validate:fixtures": "node --test tests/test_workload_fixtures.mjs tests/test_security_regressions.mjs",
+    "test": "node --test tests/*.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

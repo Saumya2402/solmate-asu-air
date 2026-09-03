@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-09-03T12:11:37.2488087-07:00",
+  "inputCase": "Synthetic replay of the user-reported PyTorch request",
+  "liveAir": true,
+  "jobName": "imagev3",
+  "jobNameEvidence": "job called imagev3",
+  "jobNameStillMissing": false,
+  "otherExtractedFacts": {
+    "workingDirectory": "/scratch/asurite/sparkyimages",
+    "memoryGb": 64,
+    "epochs": 1000,
+    "workloadType": "ml_training"
+  },
+  "automated": {
+    "testsPassed": 83,
+    "testsFailed": 0,
+    "testsSkipped": 0
+  },
+  "resourceCritic": {
+    "status": "unavailable",
+    "behavior": "Recommendations were conservatively withheld after two schema-invalid AIR responses.",
+    "impactOnJobName": "none"
+  }
+}

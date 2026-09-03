@@ -1,0 +1,179 @@
+{
+  "generatedAt": "2026-09-03T20:35:46.977Z",
+  "endpoint": "https://openai.rc.asu.edu/v1/chat/completions",
+  "role": "fact_extractor",
+  "execution": "candidate models run concurrently per sanitized fixture",
+  "containsPrompts": false,
+  "containsRawResponses": false,
+  "candidates": [
+    {
+      "model": "llama4-scout-17b",
+      "cases": 3,
+      "passedCases": 0,
+      "schemaPassRate": 1,
+      "fieldRecall": 0.6956521739130435,
+      "p50LatencyMs": 2164,
+      "p95LatencyMs": 2300,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 5,
+          "expectedFields": 8,
+          "fieldRecall": 0.625,
+          "incorrectFields": [
+            "cluster",
+            "jobName",
+            "workingDirectory"
+          ],
+          "latencyMs": 2300,
+          "returnedModel": "llama4-scout-17b"
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 6,
+          "expectedFields": 8,
+          "fieldRecall": 0.75,
+          "incorrectFields": [
+            "cluster",
+            "jobName"
+          ],
+          "latencyMs": 2164,
+          "returnedModel": "llama4-scout-17b"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 5,
+          "expectedFields": 7,
+          "fieldRecall": 0.7142857142857143,
+          "incorrectFields": [
+            "jobName",
+            "workingDirectory"
+          ],
+          "latencyMs": 2046,
+          "returnedModel": "llama4-scout-17b"
+        }
+      ]
+    },
+    {
+      "model": "gemma4-31b-it",
+      "cases": 3,
+      "passedCases": 0,
+      "schemaPassRate": 1,
+      "fieldRecall": 0.8260869565217391,
+      "p50LatencyMs": 4011,
+      "p95LatencyMs": 7241,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 4011,
+          "returnedModel": "gemma4-31b-it"
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 7241,
+          "returnedModel": "gemma4-31b-it"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 5,
+          "expectedFields": 7,
+          "fieldRecall": 0.7142857142857143,
+          "incorrectFields": [
+            "cluster",
+            "jobName"
+          ],
+          "latencyMs": 3878,
+          "returnedModel": "gemma4-31b-it"
+        }
+      ]
+    },
+    {
+      "model": "qwen3-30b-a3b-instruct-2507",
+      "cases": 3,
+      "passedCases": 2,
+      "schemaPassRate": 1,
+      "fieldRecall": 0.9565217391304348,
+      "p50LatencyMs": 1494,
+      "p95LatencyMs": 1498,
+      "results": [
+        {
+          "fixture": "pytorch_minutes",
+          "passed": true,
+          "schemaValid": true,
+          "validFields": 8,
+          "expectedFields": 8,
+          "fieldRecall": 1,
+          "incorrectFields": [],
+          "latencyMs": 1494,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        },
+        {
+          "fixture": "openfoam_mpi",
+          "passed": false,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 8,
+          "fieldRecall": 0.875,
+          "incorrectFields": [
+            "jobName"
+          ],
+          "latencyMs": 1498,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        },
+        {
+          "fixture": "phoenix_cpu",
+          "passed": true,
+          "schemaValid": true,
+          "validFields": 7,
+          "expectedFields": 7,
+          "fieldRecall": 1,
+          "incorrectFields": [],
+          "latencyMs": 64,
+          "returnedModel": "qwen3-30b-a3b-instruct-2507"
+        }
+      ]
+    }
+  ],
+  "batches": [
+    {
+      "fixture": "pytorch_minutes",
+      "elapsedMs": 4042,
+      "concurrentModels": 3
+    },
+    {
+      "fixture": "openfoam_mpi",
+      "elapsedMs": 7246,
+      "concurrentModels": 3
+    },
+    {
+      "fixture": "phoenix_cpu",
+      "elapsedMs": 3878,
+      "concurrentModels": 3
+    }
+  ],
+  "elapsedMs": 15168
+}

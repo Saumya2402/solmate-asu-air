@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-03",
+  "provider": "ASU AIR OpenAI-compatible API",
+  "fixture": "sanitized OpenFOAM follow-up transcript reproducing the reported issue",
+  "requestedModel": "qwen3-coder-30b-a3b-instruct",
+  "returnedModels": {
+    "extractor": "qwen3-coder-30b-a3b-instruct",
+    "factAuditor": "qwen3-coder-30b-a3b-instruct",
+    "planner": "qwen3-coder-30b-a3b-instruct"
+  },
+  "latencyMs": {
+    "extractor": 10000,
+    "factAuditor": 11492,
+    "planner": 20044
+  },
+  "schemaValid": true,
+  "verifiedFacts": {
+    "cluster": "sol",
+    "jobName": "of13",
+    "workingDirectory": "/scratch/asurite/sparky",
+    "cpusPerTask": 1,
+    "gpus": 1,
+    "mpiTasks": 16,
+    "memoryGb": 32,
+    "walltime": "02:00:00"
+  },
+  "correctlyUnresolved": ["partition", "qos", "nodes"],
+  "notes": "The primary extractor omitted singular CPU/GPU facts. The parallel AIR fact auditor recovered both with exact evidence. Deterministic validation kept MPI tasks separate from CPUs per task and did not treat general as a partition."
+}

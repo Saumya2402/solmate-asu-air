@@ -1,0 +1,11 @@
+[
+  { "id": "oom", "cluster": "sol", "log": "slurmstepd: error: Detected oom_kill event", "metadata": { "State": "OUT_OF_MEMORY" }, "expectedCategory": "OUT_OF_MEMORY" },
+  { "id": "timeout", "cluster": "sol", "log": "JOB CANCELLED DUE TO TIME LIMIT", "metadata": { "State": "TIMEOUT" }, "expectedCategory": "TIMEOUT" },
+  { "id": "invalid-feature", "cluster": "sol", "log": "Batch job submission failed: Invalid feature specification", "metadata": {}, "expectedCategory": "INVALID_PARTITION_OR_QOS_OR_CONSTRAINT" },
+  { "id": "command", "cluster": "sol", "log": "python: command not found", "metadata": {}, "expectedCategory": "COMMAND_NOT_FOUND_OR_MODULE" },
+  { "id": "pending", "cluster": "sol", "log": "NODELIST(REASON): Priority", "metadata": { "State": "PENDING" }, "expectedCategory": "PENDING_NOT_FAILED" },
+  { "id": "admin", "cluster": "sol", "log": "Requested node is down for maintenance", "metadata": {}, "expectedCategory": "INFRASTRUCTURE_OR_ADMIN" },
+  { "id": "clean-completion", "cluster": "sol", "log": "Simulation completed successfully", "metadata": { "State": "COMPLETED", "ExitCode": "0:0" }, "expectedCategory": null },
+  { "id": "exit-code-only", "cluster": "phoenix", "log": "Application exited", "metadata": { "State": "FAILED", "ExitCode": "1:0" }, "expectedCategory": null },
+  { "id": "generic-error", "cluster": "sol", "log": "An application error occurred", "metadata": {}, "expectedCategory": null }
+]

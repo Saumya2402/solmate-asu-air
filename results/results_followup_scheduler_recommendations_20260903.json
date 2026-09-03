@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-03",
+  "feature": "follow-up scheduler recommendation stability",
+  "automatedTests": {
+    "passed": 85,
+    "failed": 0,
+    "skipped": 0
+  },
+  "focusedTests": {
+    "passed": 41,
+    "failed": 0
+  },
+  "liveReplay": {
+    "mode": "live",
+    "fixture": "synthetic PyTorch workload on Sol",
+    "firstSchedulerPair": "public/public",
+    "followupSchedulerPair": "public/public",
+    "followupCriticStatus": "unavailable",
+    "freshRecommendationTokenReturned": true,
+    "schemaResult": "pass"
+  },
+  "security": {
+    "priorTokenSignatureVerified": true,
+    "forgedPriorTokenRejected": true,
+    "secretsRecorded": false
+  }
+}
