@@ -714,7 +714,34 @@ $("#useGeneratedEvidenceButton").addEventListener("click", () => {
   if (!state.script || !state.generatedSpec) return;
   const form = $("#diagnosisForm");
   form.elements.namedItem("script").value = state.script;
+  $("#diagnosisDemoStatus").textContent = "";
   $("#diagnosisError").textContent = "Generated script attached; add the real failure log and scheduler metadata.";
+});
+
+$("#loadDiagnosisDemoButton").addEventListener("click", async () => {
+  const button = $("#loadDiagnosisDemoButton");
+  setBusy(button, true, "Loading documented demo...");
+  $("#diagnosisError").textContent = "";
+  $("#diagnosisDemoStatus").textContent = "";
+  try {
+    const demo = await api("/api/demo-diagnosis");
+    const form = $("#diagnosisForm");
+    form.elements.namedItem("cluster").value = demo.cluster;
+    form.elements.namedItem("script").value = demo.script;
+    form.elements.namedItem("log").value = demo.log;
+    for (const field of ["State", "Reason", "ExitCode", "Elapsed", "ReqMem", "MaxRSS", "AllocTRES"]) {
+      form.elements.namedItem(field).value = demo.metadata[field] || "";
+    }
+    $("#diagnosisResult").hidden = true;
+    $("#diagnosisEmpty").hidden = false;
+    $("#diagnosisAgent").textContent = "Documented demo loaded; AIR diagnosis has not run yet.";
+    $("#diagnosisDemoStatus").textContent = `Synthetic demo loaded: ${demo.label}. Click Diagnose with AIR.`;
+    form.elements.namedItem("log").scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    $("#diagnosisError").textContent = error.message;
+  } finally {
+    setBusy(button, false, "Load documented demo");
+  }
 });
 
 $("#failurePhase").addEventListener("change", () => {

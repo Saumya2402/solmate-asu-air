@@ -27,6 +27,7 @@ test("Slurm execve missing executable output is a confirmed environment failure"
   assert.equal(findings[0].confidence, "confirmed");
   const diagnosis = diagnosisFromDeterministicFindings(findings);
   assert.match(diagnosis.recommendations[0], /absolute path|PATH/i);
+  assert.ok(diagnosis.recommendations.some((item) => /module avail.*mamba/i.test(item)));
 });
 
 test("diagnosis rejects fabricated evidence and a text/line mismatch", () => {

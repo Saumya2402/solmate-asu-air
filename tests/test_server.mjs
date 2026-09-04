@@ -12,6 +12,11 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   context.after(() => server.close());
   const base = `http://127.0.0.1:${server.address().port}`;
   const post = (path, body) => fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const demoResponse = await fetch(`${base}/api/demo-diagnosis`);
+  assert.equal(demoResponse.status, 200);
+  const demo = await demoResponse.json();
+  assert.equal(demo.synthetic, true);
+  assert.equal(Object.hasOwn(demo, "expectedCategory"), false);
   const health = await (await fetch(`${base}/api/health`)).json();
   assert.equal(health.mode, "mock");
   assert.equal(health.rulesVersion, "2026-09-03");
@@ -59,6 +64,12 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   const diagnosisResponse = await post("/api/diagnose", { cluster: "sol", log: "slurmstepd: error: Detected oom_kill event", metadata: { State: "OUT_OF_MEMORY" } });
   assert.equal(diagnosisResponse.status, 200);
   assert.equal((await diagnosisResponse.json()).diagnosis.confidence, "confirmed");
+  const demoDiagnosisResponse = await post("/api/diagnose", { cluster: demo.cluster, script: demo.script, log: demo.log, metadata: demo.metadata });
+  assert.equal(demoDiagnosisResponse.status, 200);
+  const demoDiagnosis = await demoDiagnosisResponse.json();
+  assert.equal(demoDiagnosis.diagnosis.category, "COMMAND_NOT_FOUND_OR_MODULE");
+  assert.ok(demoDiagnosis.knowledgeSources.some((source) => source.id === "available-software"));
+  assert.ok(demoDiagnosis.knowledgeSources.some((source) => source.id === "python-example"));
 });
 
 test("failure-evidence API rejects shell injection in a job ID", async (context) => {

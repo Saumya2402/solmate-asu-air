@@ -6,7 +6,7 @@ Approximate length: 520 words. Adapt team names and roles before recording.
 
 Good morning. We are **[team name]**, and we built **SolMate: ASU Compute Concierge**.
 
-Imagine it is 3:07 in the morning. A graduate student's training job has failed after hours in the queue. The error says, "Invalid feature specification." This is technically information, in the same way that "something happened" is technically a news report.
+Imagine it is 3:07 in the morning. A graduate student's training job finally starts after waiting in the queue, then immediately exits with code 127 and `python: command not found`. The scheduler accepted the job, but the research still stopped.
 
 The student now has to inspect an SBATCH script, partition and QoS rules, modules, memory usage, and scheduler metadata before getting back to the research question that mattered in the first place.
 
@@ -27,4 +27,3 @@ This is more than a generic chatbot producing SBATCH syntax. AIR performs the wo
 Our demonstration measures what we can defend: schema-valid AIR responses, deterministic rejection tests, diagnosis results on known fixtures, response latency, and a real Sol dry run when access is available. We do not turn synthetic examples into universal accuracy claims.
 
 SolMate is built around an ASU problem, powered by ASU AIR, and designed to help researchers use ASU compute with more confidence. It turns the cluster from a syntax puzzle into a guided, auditable workflow, so researchers can spend less time debugging submissions and more time advancing their work.
-

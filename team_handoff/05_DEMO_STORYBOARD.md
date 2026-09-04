@@ -36,9 +36,9 @@ Expected result: show separate upload, SSH, `bash -n`, `sbatch --test-only`, sub
 
 ## Scene 6 - Failure forensics
 
-Paste a seeded failure log and metadata.
+Open **Diagnose a failure**, select **Load documented demo**, and show that the synthetic Sol job has valid scheduler directives but reports `python: command not found`, `FAILED`, and exit code `127:0`.
 
-Expected result: show category, confidence, exact cited line, explanation, and proposed action. Briefly show an ambiguous case returning `inconclusive` if time permits.
+Expected result: AIR identifies `COMMAND NOT FOUND OR MODULE`, cites the exact log line, explains that Python was unavailable in the clean batch environment, and links the ASU software-module and Python-environment guidance. Point out that deterministic validation checks AIR's cited evidence before the finding is displayed. Briefly show an ambiguous case returning `inconclusive` if time permits.
 
 ## Evidence overlay
 
@@ -54,4 +54,3 @@ Keep these visible or capture them as a final frame:
 ## Backup strategy
 
 Record the full live run before polishing transitions. Keep a deterministic mock recording only for internal rehearsal; never present it as proof of AIR use.
-

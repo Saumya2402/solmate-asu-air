@@ -128,7 +128,7 @@ function deterministicRecommendations(category) {
     OUT_OF_MEMORY: ["After the job finishes, compare MaxRSS with requested memory using seff and sacct before increasing memory."],
     TIMEOUT: ["Use seff and sacct to compare elapsed time with the requested limit, then adjust runtime only if the workload legitimately needs it."],
     INVALID_PARTITION_OR_QOS_OR_CONSTRAINT: ["Check the partition, QoS, account, and any constraint together; this message does not identify which one is invalid."],
-    COMMAND_NOT_FOUND_OR_MODULE: ["Use an absolute path for the failing executable or initialize PATH and required modules inside the batch script before srun.", "Submit a short test job again and verify the application command starts before changing resource requests."],
+    COMMAND_NOT_FOUND_OR_MODULE: ["Use an absolute path for the failing executable or initialize PATH and required modules inside the batch script before srun.", "Run module avail with the software name; for Python environments, follow the ASU mamba guide and activate the intended environment inside the batch script.", "Submit a short test job again and verify the application command starts before changing resource requests."],
     APPLICATION_DEPENDENCY: ["Verify the required module or activate the intended mamba environment inside the batch script before the application command."],
     FILE_OR_EXECUTION_PERMISSION: ["Verify that the referenced file exists, is readable, and is executable when required; also verify its interpreter path."],
     STORAGE_OR_QUOTA: ["Run myquota and verify which filesystem contains the output before moving or deleting data."],

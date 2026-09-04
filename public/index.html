@@ -161,7 +161,11 @@
             </div>
           </details>
           <label>Slurm script<textarea name="script" class="small" placeholder="#!/usr/bin/env bash"></textarea></label>
-          <button id="useGeneratedEvidenceButton" class="secondary" type="button" disabled>Use generated SolMate script</button>
+          <div class="compact-action-row">
+            <button id="useGeneratedEvidenceButton" class="secondary" type="button" disabled>Use generated script</button>
+            <button id="loadDiagnosisDemoButton" class="secondary" type="button">Load documented demo</button>
+          </div>
+          <p id="diagnosisDemoStatus" class="analysis-status" aria-live="polite"></p>
           <label>Job log or command output<textarea name="log" required maxlength="20000" placeholder="Paste the sbatch error, stderr, myjobs, seff, or sacct output here."></textarea></label>
           <div class="field-grid">
             <label>Scheduler state<select name="State"><option value="">Not provided</option><option value="PENDING">Pending (waiting)</option><option value="RUNNING">Running</option><option value="COMPLETED">Completed successfully</option><option value="FAILED">Failed</option><option value="OUT_OF_MEMORY">Out of memory</option><option value="TIMEOUT">Time limit reached</option><option value="NODE_FAIL">Node failure</option><option value="CANCELLED">Cancelled</option></select></label>

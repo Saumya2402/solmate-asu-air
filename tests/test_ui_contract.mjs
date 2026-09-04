@@ -20,8 +20,9 @@ test("UI exposes complete diagnosis metadata and repair comparison", () => {
 });
 
 test("UI provides compact failure evidence collection without sending the job ID to diagnosis", () => {
-  for (const id of ["failurePhase", "failureJobId", "buildEvidenceButton", "evidenceCommands", "dispositionBanner"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["failurePhase", "failureJobId", "buildEvidenceButton", "evidenceCommands", "loadDiagnosisDemoButton", "diagnosisDemoStatus", "dispositionBanner"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /api\("\/api\/failure-evidence"/);
+  assert.match(app, /api\("\/api\/demo-diagnosis"\)/);
   assert.match(app, /api\("\/api\/diagnose", \{ cluster: data\.cluster, script: data\.script, log: data\.log, metadata, originalSpec \}\)/);
 });
 

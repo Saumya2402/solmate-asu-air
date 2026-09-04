@@ -130,6 +130,8 @@ pre { margin: 0; max-height: 330px; overflow: auto; padding: 17px; background: #
 .evidence-helper label { margin-bottom: 10px; }
 .evidence-helper > button { width: 100%; min-height: 36px; }
 .evidence-helper .compact-commands { margin-top: 8px; }
+.compact-action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compact-action-row .secondary { width: 100%; }
 .disposition { display: grid; gap: 3px; margin: 0 0 14px; padding: 10px 12px; border-left: 3px solid var(--green); background: #eaf4f0; }
 .disposition strong { color: #145b46; font-size: 12px; }
 .disposition span { color: #3f4b47; font-size: 11px; line-height: 1.4; }
@@ -189,6 +191,7 @@ footer { padding: 0 20px 28px; color: var(--muted); text-align: center; font-siz
   .column + .column { border-left: 0; border-top: 1px solid var(--line); }
 }
 @media (max-width: 520px) {
+  .compact-action-row { grid-template-columns: 1fr; }
   .app-header { height: auto; min-height: 100px; align-items: flex-start; }
   .status { max-width: 46%; text-align: right; white-space: normal; }
   main { padding-inline: 10px; }

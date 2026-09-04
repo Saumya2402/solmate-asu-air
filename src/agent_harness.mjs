@@ -43,7 +43,7 @@ const PROFILING_PROFILES = Object.freeze({
   openfoam_medium: { cpus: 8, gpus: 0, memoryGb: 16, walltime: "01:00:00" },
   openfoam_large: { cpus: 16, gpus: 0, memoryGb: 32, walltime: "01:00:00" },
 });
-export const DIAGNOSIS_SYSTEM = `You are an ASU AIR Slurm diagnostician. Return one JSON object only with category, confidence (confirmed, probable, or inconclusive), ruleId, evidence (array using exact 1-based log lineNumber and text, or source metadata with field and text), explanation, alternatives (string array), missingEvidence (string array), recommendations (string array), and patch (object or null). Cite only supplied evidence. Cite a ruleId only when that exact ID appears in deterministicFindings; otherwise use ruleId null and remain probable or inconclusive. Use category UNKNOWN when the evidence cannot support a narrower cause. A rule marked requiresCorroboration cannot be confirmed unless its deterministic finding is confirmed. Invalid feature specification is ambiguous. Never claim exit code alone proves root cause. Distinguish queued or running work from terminal failures. Give bounded evidence-collection steps before recommending resource or script changes.`;
+export const DIAGNOSIS_SYSTEM = `You are an ASU AIR Slurm diagnostician. Return one JSON object only with category, confidence (confirmed, probable, or inconclusive), ruleId, evidence (array using exact 1-based log lineNumber and text, or source metadata with field and text), explanation, alternatives (string array), missingEvidence (string array), recommendations (string array), and patch (object or null). Cite only supplied evidence. Cite a ruleId only when that exact ID appears in deterministicFindings; otherwise use ruleId null and remain probable or inconclusive. Use category UNKNOWN when the evidence cannot support a narrower cause. A rule marked requiresCorroboration cannot be confirmed unless its deterministic finding is confirmed. Invalid feature specification is ambiguous. Never claim exit code alone proves root cause. Distinguish queued or running work from terminal failures. Give bounded evidence-collection steps before recommending resource or script changes. For Python command or dependency failures, use supplied ASU documentation to explain module discovery and mamba environment activation, but never invent a module version or environment name.`;
 const RESOURCE_RECOMMENDATION_FIELDS = new Set(["cpus", "gpus", "memoryGb", "walltime", "nodes", "tasks", "epochs"]);
 const JSON_REPAIR_SYSTEM = "Return only a valid JSON object preserving the supplied meaning. Do not add facts.";
 
@@ -228,7 +228,8 @@ export class AgentHarness {
     const redactedScript = redactSensitive(script);
     const redactedMetadata = redactRecord(metadata);
     const findings = deterministicFindings(redactedLog.text, redactedMetadata.value);
-    const documentationContext = retrieveDocumentation({ text: `${redactedScript.text}\n${redactedLog.text}\n${JSON.stringify(redactedMetadata.value)}`, kind: "diagnosis" });
+    const retrievalTerms = diagnosisRetrievalTerms(findings, redactedLog.text);
+    const documentationContext = retrieveDocumentation({ text: `${redactedScript.text}\n${redactedLog.text}\n${JSON.stringify(redactedMetadata.value)}\n${retrievalTerms}`, kind: "diagnosis" });
     let response = null;
     let diagnosis;
     let diagnosisValidation = { airAccepted: true, fallback: null };
@@ -256,6 +257,16 @@ export class AgentHarness {
       try { return extractJsonObject(repaired.content); } catch { throw firstError; }
     }
   }
+}
+
+function diagnosisRetrievalTerms(findings, log) {
+  const categories = new Set(findings.map((finding) => finding.category));
+  const terms = [];
+  if (categories.has("COMMAND_NOT_FOUND_OR_MODULE")) terms.push("software module executable environment");
+  if (categories.has("APPLICATION_DEPENDENCY")) terms.push("software module environment dependency");
+  if (categories.has("STORAGE_OR_QUOTA")) terms.push("scratch storage quota filesystem myquota");
+  if (/python|modulenotfounderror|importerror/i.test(log)) terms.push("python pip mamba environment");
+  return terms.join(" ");
 }
 
 function mergeAirFacts(previous, current) {

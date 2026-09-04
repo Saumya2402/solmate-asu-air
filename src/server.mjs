@@ -13,6 +13,7 @@ import { sanitizeOutcomeHistory } from "./outcome_feedback.mjs";
 import { issueRecommendationToken, readRecommendationValues, verifyRecommendationConfirmations } from "./recommendation_token.mjs";
 import { issueHandoffToken, verifyHandoffAcknowledgement } from "./handoff_token.mjs";
 import { buildFailureEvidenceGuide } from "./failure_evidence.mjs";
+import { buildDocumentedDiagnosisDemo } from "./diagnosis_demo.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(currentDir, "../public");
@@ -35,6 +36,10 @@ export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OP
       }
       if (request.method === "GET" && url.pathname === "/api/demo-status") {
         return sendJson(response, 200, { mode, live: mode === "live", persistedInputs: false, localOutcomeFeedback: true, clusterExecution: false });
+      }
+      if (request.method === "GET" && url.pathname === "/api/demo-diagnosis") {
+        const { expectedCategory, ...demo } = buildDocumentedDiagnosisDemo();
+        return sendJson(response, 200, demo);
       }
       if (request.method === "POST" && url.pathname.startsWith("/api/")) requireJson(request);
       if (request.method === "POST" && url.pathname === "/api/intake") {
