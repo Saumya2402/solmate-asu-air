@@ -3,6 +3,56 @@ const OUTCOME_STORAGE_KEY = "solmate.outcomes.v1";
 const API_BASE_URL = resolveApiBaseUrl(window.SOLMATE_CONFIG?.apiBaseUrl);
 const motion = window.Motion || {};
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const AIR_GUIDANCE_TIPS = Object.freeze([
+  {
+    text: "Describe the research goal, software, data scale, and expected runtime; AIR will translate them into Slurm requirements.",
+    title: "Slurm SBATCH Job Scripts",
+    url: "https://docs.rc.asu.edu/slurm-sbatch/",
+    summary: "How to describe and structure a Slurm batch job for ASU Research Computing.",
+  },
+  {
+    text: "A partition selects the hardware queue; QoS controls the scheduling policy and limits applied to the job.",
+    title: "Partitions and QoS",
+    url: "https://docs.rc.asu.edu/partitions-and-qos/",
+    summary: "A beginner-friendly guide to ASU Research Computing partitions, QoS policies, and access rules.",
+  },
+  {
+    text: "For a failed job, include the batch script, error output, and sacct details so AIR can separate symptoms from causes.",
+    title: "Job Statistics",
+    url: "https://docs.rc.asu.edu/job-statistics/",
+    summary: "Commands and accounting evidence used to understand completed and failed Slurm jobs.",
+  },
+  {
+    text: "Start with a small validation run before requesting a long walltime, many CPUs, or multiple GPUs.",
+    title: "Helpful Slurm Commands",
+    url: "https://docs.rc.asu.edu/helpful-slurm-commands/",
+    summary: "Useful Slurm commands for checking, submitting, monitoring, and managing jobs.",
+  },
+  {
+    text: "Review job statistics after each run to tune memory, CPU, and walltime from evidence instead of guesswork.",
+    title: "Job Statistics",
+    url: "https://docs.rc.asu.edu/job-statistics/",
+    summary: "Use measured job statistics to improve future resource requests.",
+  },
+  {
+    text: "Check available software and modules before installing another copy of a research package.",
+    title: "Available Software",
+    url: "https://docs.rc.asu.edu/available-software/",
+    summary: "Search the software and module environments available through ASU Research Computing.",
+  },
+  {
+    text: "Use scratch space for active computational data, then follow ASU guidance for retaining important results.",
+    title: "Scratch File System",
+    url: "https://docs.rc.asu.edu/scratch/",
+    summary: "How scratch storage is intended to be used for active research-computing workloads.",
+  },
+  {
+    text: "When AIR cannot resolve an issue safely, Help and support connects you to tickets, Slack, office hours, and email.",
+    title: "Get Help",
+    url: "https://docs.rc.asu.edu/contact-us/",
+    summary: "Official support channels and live help from ASU Research Computing.",
+  },
+]);
 const state = {
   recommendations: new Map(),
   confirmedRecommendations: new Map(),
@@ -965,6 +1015,7 @@ function initializeMotionExperience() {
   window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
   setupDocPreviews();
   setupQuickActions();
+  setupAirGuidance();
   if (reducedMotion || typeof motion.animate !== "function") return;
 
   playMotion(document.querySelectorAll(".brand, .header-actions"), { opacity: [0, 1], y: [-12, 0] }, { duration: 0.42, delay: motion.stagger?.(0.08), ease: "circOut" });
@@ -1016,6 +1067,87 @@ function setupScrollMotion() {
     target = progress;
     if (!frame) frame = requestAnimationFrame(update);
   });
+}
+
+function setupAirGuidance() {
+  const region = $("#airGuidance");
+  const text = $("#airGuidanceText");
+  const link = $("#airGuidanceLink");
+  const toggle = $("#airGuidanceToggle");
+  if (!region || !text || !link || !toggle) return;
+
+  const guidance = { index: 0, character: 0, phase: "typing", manualPause: false, interactionPause: false, timer: null };
+  const paused = () => guidance.manualPause || guidance.interactionPause || document.hidden;
+  const currentTip = () => AIR_GUIDANCE_TIPS[guidance.index];
+  const schedule = (delay) => {
+    window.clearTimeout(guidance.timer);
+    guidance.timer = window.setTimeout(advance, delay);
+  };
+  const updateGuide = (tip) => {
+    link.href = tip.url;
+    link.dataset.docTitle = tip.title;
+    link.dataset.docSummary = tip.summary;
+    link.setAttribute("aria-label", `Open related ASU RC guide: ${tip.title}`);
+  };
+  const updateToggle = () => {
+    const isPaused = guidance.manualPause;
+    toggle.querySelector(".guidance-pause-icon").hidden = isPaused;
+    toggle.querySelector(".guidance-play-icon").hidden = !isPaused;
+    toggle.setAttribute("aria-label", isPaused ? "Resume AIR guidance" : "Pause AIR guidance");
+    toggle.title = isPaused ? "Resume guidance" : "Pause guidance";
+  };
+  const advance = async () => {
+    if (paused() || guidance.phase === "transitioning") return;
+    const tip = currentTip();
+    if (guidance.phase === "typing") {
+      guidance.character = Math.min(tip.text.length, guidance.character + 1);
+      text.textContent = tip.text.slice(0, guidance.character);
+      if (guidance.character < tip.text.length) {
+        schedule(/[.,;:]/.test(tip.text[guidance.character - 1]) ? 105 : 24);
+        return;
+      }
+      guidance.phase = "holding";
+      schedule(4400);
+      return;
+    }
+    guidance.phase = "transitioning";
+    await playMotion(text, { opacity: [1, 0], y: [0, -7] }, { duration: 0.18, ease: "easeIn" });
+    guidance.index = (guidance.index + 1) % AIR_GUIDANCE_TIPS.length;
+    guidance.character = 0;
+    guidance.phase = "typing";
+    text.textContent = "";
+    updateGuide(currentTip());
+    await playMotion(text, { opacity: [0, 1], y: [7, 0] }, { duration: 0.2, ease: "easeOut" });
+    schedule(90);
+  };
+
+  updateGuide(currentTip());
+  if (reducedMotion) {
+    text.textContent = currentTip().text;
+    toggle.hidden = true;
+    return;
+  }
+  text.textContent = "";
+  toggle.addEventListener("click", () => {
+    guidance.manualPause = !guidance.manualPause;
+    updateToggle();
+    if (!guidance.manualPause) schedule(40);
+  });
+  [text.closest(".air-guidance-message"), link].forEach((surface) => {
+    surface.addEventListener("mouseenter", () => { guidance.interactionPause = true; });
+    surface.addEventListener("mouseleave", () => { guidance.interactionPause = false; schedule(40); });
+  });
+  region.addEventListener("focusin", (event) => {
+    if (event.target !== toggle) guidance.interactionPause = true;
+  });
+  region.addEventListener("focusout", (event) => {
+    if (event.relatedTarget instanceof Node && region.contains(event.relatedTarget) && event.relatedTarget !== toggle) return;
+    guidance.interactionPause = false;
+    schedule(40);
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) schedule(40); });
+  updateToggle();
+  schedule(320);
 }
 
 function setupDocPreviews() {

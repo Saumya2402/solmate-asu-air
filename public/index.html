@@ -25,6 +25,19 @@
     <button id="planTab" class="tab active" type="button" role="tab" data-tab="plan" aria-controls="planPanel" aria-selected="true"><span aria-hidden="true">01</span>Plan a job</button>
     <button id="diagnoseTab" class="tab" type="button" role="tab" data-tab="diagnose" aria-controls="diagnosePanel" aria-selected="false"><span aria-hidden="true">02</span>Diagnose a failure</button>
   </nav>
+  <aside id="airGuidance" class="air-guidance" aria-label="AIR guidance">
+    <div class="air-guidance-inner">
+      <span class="air-guidance-label"><i data-lucide="lightbulb" aria-hidden="true"></i>AIR suggests</span>
+      <span class="air-guidance-message">
+        <span id="airGuidanceText">Describe the research goal, software, data scale, and expected runtime.</span><span class="typewriter-caret" aria-hidden="true"></span>
+      </span>
+      <a id="airGuidanceLink" class="air-guidance-link" href="https://docs.rc.asu.edu/slurm-sbatch/" target="_blank" rel="noreferrer" data-doc-preview data-doc-summary="How to describe and structure a Slurm batch job for ASU Research Computing.">Related guide<i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+      <button id="airGuidanceToggle" class="air-guidance-toggle" type="button" aria-label="Pause AIR guidance" title="Pause guidance">
+        <span class="guidance-pause-icon"><i data-lucide="pause" aria-hidden="true"></i></span>
+        <span class="guidance-play-icon" hidden><i data-lucide="play" aria-hidden="true"></i></span>
+      </button>
+    </div>
+  </aside>
   <div id="serviceNotice" class="service-notice" role="alert" hidden>
     <strong>AIR service not connected</strong>
     <span>The interface is available, but analysis requires the separately hosted SolMate API.</span>

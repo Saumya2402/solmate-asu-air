@@ -81,6 +81,34 @@ h1 { margin: 1px 0 2px; font-size: 26px; line-height: 1; letter-spacing: 0; }
 .tab:hover { color: var(--ink); background: #fafafa; }
 .tab.active { color: var(--maroon); border-bottom-color: var(--maroon); }
 .tab.active > span { color: var(--maroon); }
+.air-guidance {
+  min-height: 64px; display: flex; align-items: center; border-bottom: 1px solid #e4d7aa;
+  background: #fff9e8; color: #303438;
+}
+.air-guidance-inner {
+  width: 100%; padding: 8px clamp(18px, 4vw, 58px); display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 36px; align-items: center; gap: 14px;
+}
+.air-guidance-label { display: inline-flex; align-items: center; gap: 7px; color: var(--maroon); font-size: 11px; font-weight: 900; white-space: nowrap; }
+.air-guidance-label svg { width: 16px; height: 16px; color: #a36d00; }
+.air-guidance-message { min-width: 0; min-height: 38px; display: block; align-self: center; line-height: 1.45; font-size: 13px; font-weight: 650; }
+#airGuidanceText { overflow-wrap: anywhere; }
+.typewriter-caret {
+  display: inline-block; width: 2px; height: 1.05em; margin-left: 3px; vertical-align: -2px;
+  background: var(--maroon); animation: caret-blink 900ms steps(1, end) infinite;
+}
+@keyframes caret-blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
+.air-guidance-link { display: inline-flex; align-items: center; gap: 5px; color: var(--maroon); font-size: 11px; font-weight: 850; text-decoration: none; white-space: nowrap; }
+.air-guidance-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.air-guidance-link svg { width: 14px; height: 14px; }
+.air-guidance-toggle {
+  width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #d8c88f;
+  border-radius: 50%; background: #fffdf5; color: #4d5155;
+}
+.air-guidance-toggle:hover { border-color: var(--maroon); color: var(--maroon); }
+.air-guidance-toggle span { display: grid; place-items: center; }
+.air-guidance-toggle span[hidden] { display: none; }
+.air-guidance-toggle svg { width: 15px; height: 15px; }
 .service-notice {
   width: min(1440px, calc(100% - 32px)); margin: 16px auto 0; padding: 11px 14px;
   display: flex; align-items: baseline; gap: 10px; border-left: 4px solid var(--red); background: #fff;
@@ -394,6 +422,13 @@ pre { margin: 0; max-height: 350px; overflow: auto; padding: 17px; background: v
   .support-hub { grid-template-columns: 1fr; }
   .support-intro { max-width: 660px; }
 }
+@media (max-width: 900px) {
+  .air-guidance-inner { grid-template-columns: auto minmax(0, 1fr) 34px; gap: 8px 12px; }
+  .air-guidance-label { grid-column: 1; grid-row: 1 / span 2; align-self: start; padding-top: 3px; }
+  .air-guidance-message { grid-column: 2; grid-row: 1; }
+  .air-guidance-link { grid-column: 2; grid-row: 2; justify-self: start; }
+  .air-guidance-toggle { width: 34px; height: 34px; grid-column: 3; grid-row: 1 / span 2; }
+}
 @media (max-width: 620px) {
   .app-header { position: relative; min-height: 72px; padding: 11px 14px; }
   .brand-mark { width: 38px; height: 38px; flex-basis: 38px; font-size: 13px; }
@@ -403,6 +438,12 @@ pre { margin: 0; max-height: 350px; overflow: auto; padding: 17px; background: v
   .status { max-width: 150px; padding: 0 8px; font-size: 9px; }
   .tabs { top: 0; padding: 0 8px; }
   .tab { min-width: 0; flex: 1 1 50%; padding: 0 7px; }
+  .air-guidance { min-height: 116px; }
+  .air-guidance-inner { padding: 9px 13px; grid-template-columns: minmax(0, 1fr) 34px; gap: 7px 9px; }
+  .air-guidance-label { grid-column: 1; grid-row: 1; align-self: center; padding-top: 0; }
+  .air-guidance-message { grid-column: 1 / -1; grid-row: 2; min-height: 54px; align-self: start; font-size: 12px; }
+  .air-guidance-link { grid-column: 1; grid-row: 3; justify-self: start; }
+  .air-guidance-toggle { grid-column: 2; grid-row: 1; }
   .service-notice { width: calc(100% - 20px); align-items: flex-start; flex-direction: column; gap: 3px; }
   main { padding: 10px 10px 30px; }
   .column { padding: 22px 16px; }
@@ -446,4 +487,5 @@ pre { margin: 0; max-height: 350px; overflow: auto; padding: 17px; background: v
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .scroll-progress { display: none; }
+  .typewriter-caret { display: none; }
 }

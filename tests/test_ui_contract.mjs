@@ -150,3 +150,16 @@ test("UI previews ASU documentation and exposes verified human support routes", 
   assert.match(css, /\.quick-action-label\s*\{[^}]*border-radius:\s*999px/s);
   assert.match(css, /\.quick-action-item:nth-child\(2\)\s*\{[^}]*margin-right:\s*18px/s);
 });
+
+test("UI provides continuous, pausable AIR guidance linked to ASU RC documentation", () => {
+  for (const id of ["airGuidance", "airGuidanceText", "airGuidanceLink", "airGuidanceToggle"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(app, /AIR_GUIDANCE_TIPS/);
+  assert.match(app, /function setupAirGuidance/);
+  assert.match(app, /guidance\.manualPause/);
+  assert.match(app, /surface\.addEventListener\("mouseenter"/);
+  assert.match(app, /document\.addEventListener\("visibilitychange"/);
+  assert.match(app, /https:\/\/docs\.rc\.asu\.edu\/partitions-and-qos\//);
+  assert.match(css, /\.typewriter-caret/);
+});
