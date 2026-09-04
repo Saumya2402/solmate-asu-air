@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div id="scrollProgress" class="scroll-progress" aria-hidden="true"></div>
   <a class="skip-link" href="#workspace">Skip to workspace</a>
   <header class="app-header">
     <div class="brand">
@@ -218,7 +219,18 @@
     </section>
   </main>
   <footer><strong>Human review required.</strong> SolMate never submits jobs or stores cluster credentials.</footer>
+  <div class="quick-actions">
+    <div id="quickActionMenu" class="quick-action-menu" role="menu" aria-label="Quick actions" hidden>
+      <button type="button" role="menuitem" data-quick-action="plan">Workload input</button>
+      <button type="button" role="menuitem" data-quick-action="demo">Failure demo</button>
+      <button type="button" role="menuitem" data-quick-action="top">Back to top</button>
+    </div>
+    <button id="quickActionToggle" class="floating-action" type="button" aria-expanded="false" aria-controls="quickActionMenu" title="Open quick actions">
+      <span aria-hidden="true">+</span><span class="sr-only">Open quick actions</span>
+    </button>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="./vendor/motion.js"></script>
   <script src="./config.js"></script>
   <script type="module" src="./app.js"></script>
 </body>

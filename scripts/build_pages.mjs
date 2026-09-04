@@ -5,11 +5,15 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = path.join(root, "public");
 const output = path.join(root, "dist");
+const motionPackage = path.join(root, "node_modules", "motion");
 const apiBaseUrl = validateApiBaseUrl(process.env.SOLMATE_API_BASE_URL);
 
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(source, output, { recursive: true });
+await mkdir(path.join(output, "vendor"), { recursive: true });
+await cp(path.join(motionPackage, "dist", "motion.js"), path.join(output, "vendor", "motion.js"));
+await cp(path.join(motionPackage, "LICENSE.md"), path.join(output, "vendor", "motion.LICENSE.md"));
 await writeFile(path.join(output, "config.js"), `window.SOLMATE_CONFIG = Object.freeze(${JSON.stringify({ apiBaseUrl }, null, 2)});\n`, "utf8");
 await writeFile(path.join(output, ".nojekyll"), "", "utf8");
 

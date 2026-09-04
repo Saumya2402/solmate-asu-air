@@ -1,6 +1,8 @@
 const $ = (selector) => document.querySelector(selector);
 const OUTCOME_STORAGE_KEY = "solmate.outcomes.v1";
 const API_BASE_URL = resolveApiBaseUrl(window.SOLMATE_CONFIG?.apiBaseUrl);
+const motion = window.Motion || {};
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const state = {
   recommendations: new Map(),
   confirmedRecommendations: new Map(),
@@ -21,8 +23,11 @@ const state = {
 let analysisTimer = null;
 let analysisSequence = 0;
 let intakeController = null;
+let workflowTransitionSequence = 0;
+let outputTransitionSequence = 0;
 
 initialize();
+initializeMotionExperience();
 
 async function initialize() {
   try {
@@ -45,19 +50,37 @@ async function initialize() {
   }
 }
 
-document.querySelectorAll(".tab").forEach((button) => button.addEventListener("click", () => {
+document.querySelectorAll(".tab").forEach((button) => button.addEventListener("click", () => switchWorkflow(button)));
+
+async function switchWorkflow(button) {
+  const target = $(`#${button.getAttribute("aria-controls")}`);
+  const current = document.querySelector(".panel.active");
+  if (!target || current === target) return;
+  const sequence = ++workflowTransitionSequence;
   document.querySelectorAll(".tab").forEach((tab) => {
     const active = tab === button;
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", String(active));
   });
-  document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${button.dataset.tab}Panel`));
-  document.querySelectorAll(".panel").forEach((panel) => { panel.hidden = panel.id !== `${button.dataset.tab}Panel`; });
-}));
+  if (current) await playMotion(current, { opacity: [1, 0], x: [0, -18] }, { duration: 0.16, ease: "easeIn" });
+  if (sequence !== workflowTransitionSequence) return;
+  document.querySelectorAll(".panel").forEach((panel) => {
+    const active = panel === target;
+    panel.classList.toggle("active", active);
+    panel.hidden = !active;
+  });
+  await playMotion(target, { opacity: [0, 1], x: [22, 0] }, springTransition({ stiffness: 320, damping: 28 }));
+}
 
 document.querySelectorAll(".output-tab").forEach((button) => button.addEventListener("click", () => activateOutputTab(button.dataset.outputTab)));
 
-function activateOutputTab(name) {
+async function activateOutputTab(name) {
+  const next = document.querySelector(`[data-output-view="${CSS.escape(name)}"]`);
+  const previous = document.querySelector(".output-view.active:not([hidden])");
+  if (!next || previous === next) return;
+  const sequence = ++outputTransitionSequence;
+  if (previous) await playMotion(previous, { opacity: [1, 0], y: [0, -8] }, { duration: 0.12, ease: "easeIn" });
+  if (sequence !== outputTransitionSequence) return;
   document.querySelectorAll(".output-tab").forEach((tab) => {
     const active = tab.dataset.outputTab === name;
     tab.classList.toggle("active", active);
@@ -68,6 +91,7 @@ function activateOutputTab(name) {
     view.classList.toggle("active", active);
     view.hidden = !active;
   });
+  await playMotion(next, { opacity: [0, 1], y: [12, 0] }, springTransition({ stiffness: 360, damping: 31 }));
 }
 
 $("#description").addEventListener("input", () => {
@@ -197,6 +221,8 @@ function renderIntake(payload, { scroll = false } = {}) {
     item.append(identity, details);
     container.append(item);
   }
+  animateStagger(container.children, { distance: 10, interval: 0.035 });
+  animateStagger([...form.querySelectorAll("input, select, textarea")].filter((input) => input.value), { distance: 5, interval: 0.012 });
   for (const field of [...state.confirmedRecommendations.keys()]) {
     if (!state.recommendations.has(field)) state.confirmedRecommendations.delete(field);
   }
@@ -519,6 +545,7 @@ function renderGenerated(payload) {
   renderGuidance(payload.guidance);
   renderSourceLinks($("#generationKnowledgeSources"), payload.knowledgeSources || []);
   renderOutcomeSelection();
+  animateResultReveal($("#results"));
 }
 
 function showAcceptedSuggestions(spec) {
@@ -829,6 +856,7 @@ function renderDiagnosis(payload) {
   const comparison = $("#repairComparison"); comparison.hidden = !payload.repair;
   if (payload.repair) { $("#originalScript").textContent = state.script; $("#proposedScript").textContent = payload.repair.script; }
   $("#redactionNote").textContent = payload.redactions ? `${payload.redactions} sensitive value(s) were redacted before the AIR request.` : "No sensitive patterns were detected.";
+  animateResultReveal($("#diagnosisResult"));
 }
 
 async function api(url, body, { signal } = {}) {
@@ -908,6 +936,8 @@ function updatePlanProgress(stage) {
     if (index === activeIndex) item.setAttribute("aria-current", "step");
     else item.removeAttribute("aria-current");
   });
+  const activeMarker = document.querySelector("#planProgress .current span");
+  if (activeMarker) playMotion(activeMarker, { scale: [0.68, 1] }, springTransition({ stiffness: 480, damping: 24 }));
 }
 
 let toastTimer = null;
@@ -915,6 +945,114 @@ function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
   toast.hidden = false;
+  playMotion(toast, { opacity: [0, 1], y: [16, 0], scale: [0.96, 1] }, springTransition({ stiffness: 420, damping: 30 }));
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => { toast.hidden = true; }, 1800);
+  toastTimer = window.setTimeout(async () => {
+    await playMotion(toast, { opacity: [1, 0], y: [0, 10] }, { duration: 0.16, ease: "easeIn" });
+    toast.hidden = true;
+  }, 1800);
+}
+
+function initializeMotionExperience() {
+  document.documentElement.classList.add("motion-ready");
+  setupQuickActions();
+  if (reducedMotion || typeof motion.animate !== "function") return;
+
+  playMotion(document.querySelectorAll(".brand, .header-actions"), { opacity: [0, 1], y: [-12, 0] }, { duration: 0.42, delay: motion.stagger?.(0.08), ease: "circOut" });
+  playMotion($(".tabs"), { opacity: [0, 1], y: [-8, 0] }, { duration: 0.35, delay: 0.1, ease: "circOut" });
+  playMotion($(".work-grid"), { opacity: [0, 1], y: [24, 0], scale: [0.985, 1] }, springTransition({ stiffness: 260, damping: 27, delay: 0.12 }));
+  playMotion($("#quickActionToggle"), { opacity: [0, 1], scale: [0.55, 1] }, springTransition({ stiffness: 460, damping: 24, delay: 0.3 }));
+
+  if (typeof motion.scroll === "function") {
+    motion.scroll((progress) => { $("#scrollProgress").style.transform = `scaleX(${progress})`; });
+  }
+  if (typeof motion.inView === "function") {
+    motion.inView(".section-title, .evidence-strip", (element) => {
+      playMotion(element, { opacity: [0.35, 1], y: [16, 0] }, springTransition({ stiffness: 300, damping: 28 }));
+      return () => playMotion(element, { opacity: 0.68, y: -5 }, { duration: 0.14, ease: "easeOut" });
+    }, { margin: "-8% 0px -10% 0px", amount: 0.25 });
+  }
+  if (typeof motion.press === "function") {
+    motion.press("button", (element) => {
+      playMotion(element, { scale: 0.97 }, { duration: 0.08, ease: "easeOut" });
+      return () => playMotion(element, { scale: 1 }, springTransition({ stiffness: 520, damping: 25 }));
+    });
+  }
+  document.addEventListener("change", (event) => {
+    if (!event.target.matches("input, select, textarea")) return;
+    playMotion(event.target, { scale: [0.985, 1] }, springTransition({ stiffness: 500, damping: 28 }));
+  });
+}
+
+function setupQuickActions() {
+  const toggle = $("#quickActionToggle");
+  const menu = $("#quickActionMenu");
+  toggle.addEventListener("click", () => setQuickActions(toggle.getAttribute("aria-expanded") !== "true"));
+  menu.addEventListener("click", async (event) => {
+    const action = event.target.closest("[data-quick-action]")?.dataset.quickAction;
+    if (!action) return;
+    await setQuickActions(false);
+    if (action === "top") window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+    if (action === "plan") {
+      await switchWorkflow($("#planTab"));
+      $("#description").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+      $("#description").focus({ preventScroll: true });
+    }
+    if (action === "demo") {
+      await switchWorkflow($("#diagnoseTab"));
+      $("#loadDiagnosisDemoButton").click();
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (toggle.getAttribute("aria-expanded") === "true" && !event.target.closest(".quick-actions")) setQuickActions(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setQuickActions(false);
+  });
+}
+
+let quickActionSequence = 0;
+async function setQuickActions(open) {
+  const sequence = ++quickActionSequence;
+  const toggle = $("#quickActionToggle");
+  const menu = $("#quickActionMenu");
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.title = open ? "Close quick actions" : "Open quick actions";
+  playMotion(toggle.querySelector("[aria-hidden=true]"), { rotate: open ? 45 : 0 }, springTransition({ stiffness: 520, damping: 27 }));
+  if (open) {
+    menu.hidden = false;
+    await playMotion(menu, { opacity: [0, 1], y: [14, 0], scale: [0.92, 1] }, springTransition({ stiffness: 400, damping: 29 }));
+    menu.querySelector("button")?.focus();
+    return;
+  }
+  if (menu.hidden) return;
+  await playMotion(menu, { opacity: [1, 0], y: [0, 8], scale: [1, 0.96] }, { duration: 0.14, ease: "easeIn" });
+  if (sequence === quickActionSequence) menu.hidden = true;
+}
+
+function animateStagger(elements, { distance = 12, interval = 0.04 } = {}) {
+  const targets = [...elements];
+  if (!targets.length || reducedMotion || typeof motion.animate !== "function") return;
+  motion.animate(targets, { opacity: [0, 1], y: [distance, 0] }, springTransition({ stiffness: 340, damping: 29, delay: motion.stagger?.(interval) }));
+}
+
+function animateResultReveal(container) {
+  if (!container || reducedMotion) return;
+  playMotion(container, { opacity: [0, 1], y: [18, 0], scale: [0.985, 1] }, springTransition({ stiffness: 300, damping: 28 }));
+  animateStagger(container.querySelectorAll(".badge, .resource-summary > div, .evidence-block, .review"), { distance: 9, interval: 0.045 });
+}
+
+function springTransition(overrides = {}) {
+  return { type: "spring", stiffness: 380, damping: 30, mass: 0.8, ...overrides };
+}
+
+async function playMotion(target, keyframes, options) {
+  if (!target || reducedMotion || typeof motion.animate !== "function") return;
+  try {
+    const controls = motion.animate(target, keyframes, options);
+    if (typeof controls?.then === "function") await controls;
+    else if (controls?.finished) await controls.finished;
+  } catch (error) {
+    if (error?.name !== "AbortError") console.warn("Animation could not complete.");
+  }
 }

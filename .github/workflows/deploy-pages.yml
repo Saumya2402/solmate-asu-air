@@ -1,8 +1,6 @@
 name: Deploy SolMate interface
 
 on:
-  push:
-    branches: [continued-development]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +28,7 @@ jobs:
       - name: Build static interface
         env:
           SOLMATE_API_BASE_URL: ${{ vars.SOLMATE_API_BASE_URL }}
-        run: npm run build:pages
+        run: npm ci --no-audit --no-fund && npm run build:pages
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
