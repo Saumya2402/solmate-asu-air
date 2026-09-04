@@ -129,3 +129,20 @@ test("UI provides Motion-powered spring, scroll, exit, and floating-action inter
   assert.match(app, /opacity: \[1, 0\]/);
   assert.match(app, /prefers-reduced-motion/);
 });
+
+test("UI previews ASU documentation and exposes verified human support routes", () => {
+  for (const id of ["docModal", "docPreview", "docPreviewOpen", "pointerHalo", "supportHub"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /https:\/\/asu\.service-now\.com\/sp\?/);
+  assert.match(html, /https:\/\/links\.asu\.edu\/rc-support/);
+  assert.match(html, /https:\/\/asu\.zoom\.us\/my\/rcofficehours/);
+  assert.match(html, /mailto:rc-help@asu\.edu/);
+  assert.match(app, /function openDocPreview/);
+  assert.match(app, /function closeDocPreview/);
+  assert.match(app, /docExpansionTransform/);
+  assert.match(app, /source\.dataset\.docPreview/);
+  assert.match(app, /function setupScrollMotion/);
+  assert.match(app, /function setupPointerHalo/);
+  assert.match(app, /velocity\[key\]/);
+});

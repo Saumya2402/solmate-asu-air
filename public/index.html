@@ -16,14 +16,14 @@
       <div><p class="eyebrow">ASU AIR</p><h1>SolMate</h1><p class="subtitle">Research Computing Assistant</p></div>
     </div>
     <div class="header-actions">
-      <a class="docs-link" href="https://docs.rc.asu.edu/" target="_blank" rel="noreferrer">ASU RC Docs</a>
+      <a class="docs-link" href="https://docs.rc.asu.edu/" target="_blank" rel="noreferrer" data-doc-preview data-doc-summary="The central reference for ASU supercomputing, Slurm, software, storage, and support." data-magnetic>ASU RC Docs</a>
       <div id="modeStatus" class="status" data-mode="connecting" role="status"><span class="status-dot"></span><span id="modeLabel">Connecting</span></div>
     </div>
   </header>
 
   <nav class="tabs" aria-label="Workflows" role="tablist">
-    <button id="planTab" class="tab active" type="button" role="tab" data-tab="plan" aria-controls="planPanel" aria-selected="true"><span aria-hidden="true">01</span>Plan a job</button>
-    <button id="diagnoseTab" class="tab" type="button" role="tab" data-tab="diagnose" aria-controls="diagnosePanel" aria-selected="false"><span aria-hidden="true">02</span>Diagnose a failure</button>
+    <button id="planTab" class="tab active" type="button" role="tab" data-tab="plan" aria-controls="planPanel" aria-selected="true" data-magnetic><span aria-hidden="true">01</span>Plan a job</button>
+    <button id="diagnoseTab" class="tab" type="button" role="tab" data-tab="diagnose" aria-controls="diagnosePanel" aria-selected="false" data-magnetic><span aria-hidden="true">02</span>Diagnose a failure</button>
   </nav>
   <div id="serviceNotice" class="service-notice" role="alert" hidden>
     <strong>AIR service not connected</strong>
@@ -218,29 +218,79 @@
       </div>
     </section>
   </main>
-  <footer><strong>Human review required.</strong> SolMate never submits jobs or stores cluster credentials.</footer>
+  <section id="supportHub" class="support-hub motion-reveal" aria-labelledby="supportHeading">
+    <div class="support-intro">
+      <p class="eyebrow">ASU Research Computing support</p>
+      <h2 id="supportHeading">A clear next step, even when AIR cannot finish the diagnosis.</h2>
+      <p>Bring the job ID, exact error output, and submit script. Never include passwords, API keys, or private research data.</p>
+    </div>
+    <nav class="support-links" aria-label="Research Computing help options">
+      <a class="support-link" href="https://asu.service-now.com/sp?catalog_id=e0d08b13c3330100c8b837659bba8fb4&amp;id=sc_category&amp;sys_id=6a4224e41345e24075e9d4a76144b023" target="_blank" rel="noreferrer">
+        <span class="support-link-icon" data-magnetic><i data-lucide="ticket-check" aria-hidden="true"></i></span><span><strong>Submit a ticket</strong><small>Research Computing service request</small></span><i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a class="support-link" href="https://links.asu.edu/rc-support" target="_blank" rel="noreferrer">
+        <span class="support-link-icon" data-magnetic><i data-lucide="messages-square" aria-hidden="true"></i></span><span><strong>Ask in Slack</strong><small>Quick questions in #rc-support</small></span><i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a class="support-link" href="https://asu.zoom.us/my/rcofficehours" target="_blank" rel="noreferrer">
+        <span class="support-link-icon" data-magnetic><i data-lucide="video" aria-hidden="true"></i></span><span><strong>Join office hours</strong><small>Live help from the RC team</small></span><i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a class="support-link" href="mailto:rc-help@asu.edu?subject=Research%20Computing%20help">
+        <span class="support-link-icon" data-magnetic><i data-lucide="mail" aria-hidden="true"></i></span><span><strong>Email RC help</strong><small>Send a concise technical question</small></span><i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a class="support-link" href="https://docs.rc.asu.edu/contact-us/" target="_blank" rel="noreferrer" data-doc-preview data-doc-summary="Official support channels, office hours, Slack, and secure-computing help from ASU Research Computing.">
+        <span class="support-link-icon" data-magnetic><i data-lucide="book-open" aria-hidden="true"></i></span><span><strong>Browse help options</strong><small>Preview the official RC guide</small></span><i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+    </nav>
+  </section>
+  <footer class="site-footer"><strong>Human review required.</strong><span>SolMate never submits jobs or stores cluster credentials.</span><a href="#workspace">Return to workspace</a></footer>
+  <div id="docModal" class="doc-modal" hidden>
+    <button id="docBackdrop" class="doc-backdrop" type="button" aria-label="Close documentation preview" tabindex="-1"></button>
+    <article id="docPreview" class="doc-preview" role="dialog" aria-modal="true" aria-labelledby="docPreviewTitle" aria-describedby="docPreviewSummary">
+      <div class="doc-preview-accent" aria-hidden="true"></div>
+      <header class="doc-preview-header">
+        <div class="doc-preview-mark"><i data-lucide="book-open" aria-hidden="true"></i></div>
+        <div><p class="eyebrow">ASU RC Docs</p><h2 id="docPreviewTitle"></h2></div>
+        <button id="closeDocPreview" class="doc-close" type="button" aria-label="Close documentation preview" title="Close preview" data-magnetic><i data-lucide="x" aria-hidden="true"></i></button>
+      </header>
+      <div class="doc-preview-body">
+        <p id="docPreviewSummary"></p>
+        <p class="doc-preview-note">Review the official guide before changing scheduler settings or rerunning a failed job.</p>
+      </div>
+      <footer class="doc-preview-footer">
+        <span id="docPreviewHost">docs.rc.asu.edu</span>
+        <a id="docPreviewOpen" class="doc-open-button" href="https://docs.rc.asu.edu/" target="_blank" rel="noreferrer" data-magnetic>Open full guide <i data-lucide="external-link" aria-hidden="true"></i></a>
+      </footer>
+    </article>
+  </div>
+  <div id="pointerHalo" class="pointer-halo" aria-hidden="true"></div>
   <div class="quick-actions">
     <div id="quickActionMenu" class="quick-action-menu" role="menu" aria-label="Quick actions" hidden>
       <div class="quick-action-item" role="none">
         <span class="quick-action-label" aria-hidden="true">Workload input</span>
-        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="plan" aria-label="Go to workload input" title="Workload input">
+        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="plan" aria-label="Go to workload input" title="Workload input" data-magnetic>
           <i data-lucide="clipboard-pen-line" aria-hidden="true"></i>
         </button>
       </div>
       <div class="quick-action-item" role="none">
         <span class="quick-action-label" aria-hidden="true">Failure demo</span>
-        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="demo" aria-label="Load the failure demo" title="Failure demo">
+        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="demo" aria-label="Load the failure demo" title="Failure demo" data-magnetic>
           <i data-lucide="triangle-alert" aria-hidden="true"></i>
         </button>
       </div>
       <div class="quick-action-item" role="none">
+        <span class="quick-action-label" aria-hidden="true">Help and support</span>
+        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="support" aria-label="Go to help and support" title="Help and support" data-magnetic>
+          <i data-lucide="life-buoy" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="quick-action-item" role="none">
         <span class="quick-action-label" aria-hidden="true">Back to top</span>
-        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="top" aria-label="Back to top" title="Back to top">
+        <button class="quick-action-button" type="button" role="menuitem" data-quick-action="top" aria-label="Back to top" title="Back to top" data-magnetic>
           <i data-lucide="arrow-up" aria-hidden="true"></i>
         </button>
       </div>
     </div>
-    <button id="quickActionToggle" class="floating-action" type="button" aria-expanded="false" aria-controls="quickActionMenu" title="Open quick actions">
+    <button id="quickActionToggle" class="floating-action" type="button" aria-expanded="false" aria-controls="quickActionMenu" title="Open quick actions" data-magnetic>
       <i class="floating-action-icon" data-lucide="plus" aria-hidden="true"></i><span class="sr-only">Open quick actions</span>
     </button>
   </div>

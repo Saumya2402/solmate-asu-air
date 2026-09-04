@@ -25,6 +25,9 @@ let analysisSequence = 0;
 let intakeController = null;
 let workflowTransitionSequence = 0;
 let outputTransitionSequence = 0;
+let docTransitionSequence = 0;
+let activeDocAnchor = null;
+let docPreviousFocus = null;
 
 initialize();
 initializeMotionExperience();
@@ -617,6 +620,8 @@ function renderGuidance(guidance) {
     const label = document.createElement("strong"); label.textContent = tool.label + " - " + tool.when;
     const code = document.createElement("code"); code.textContent = tool.command;
     const source = document.createElement("a"); source.href = tool.source.url; source.target = "_blank"; source.rel = "noreferrer"; source.textContent = "ASU guide";
+    source.dataset.docPreview = "";
+    source.dataset.docSummary = tool.source.summary || `Official ASU Research Computing guidance for ${tool.label}.`;
     const button = document.createElement("button"); button.type = "button"; button.className = "secondary"; button.textContent = "Copy";
     button.addEventListener("click", () => copyText(tool.command, button));
     item.append(label, code, button, source); return item;
@@ -694,6 +699,8 @@ function renderSourceLinks(container, sources) {
   container.replaceChildren(...uniqueSources.map((source) => {
     const item = document.createElement("li");
     const anchor = document.createElement("a"); anchor.href = source.url; anchor.target = "_blank"; anchor.rel = "noreferrer"; anchor.textContent = source.title;
+    anchor.dataset.docPreview = "";
+    anchor.dataset.docSummary = source.summary || "Official guidance from ASU Research Computing.";
     item.append(anchor); return item;
   }));
 }
@@ -956,7 +963,9 @@ function showToast(message) {
 function initializeMotionExperience() {
   document.documentElement.classList.add("motion-ready");
   window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
+  setupDocPreviews();
   setupQuickActions();
+  setupPointerHalo();
   if (reducedMotion || typeof motion.animate !== "function") return;
 
   playMotion(document.querySelectorAll(".brand, .header-actions"), { opacity: [0, 1], y: [-12, 0] }, { duration: 0.42, delay: motion.stagger?.(0.08), ease: "circOut" });
@@ -964,14 +973,16 @@ function initializeMotionExperience() {
   playMotion($(".work-grid"), { opacity: [0, 1], y: [24, 0], scale: [0.985, 1] }, springTransition({ stiffness: 260, damping: 27, delay: 0.12 }));
   playMotion($("#quickActionToggle"), { opacity: [0, 1], scale: [0.55, 1] }, springTransition({ stiffness: 460, damping: 24, delay: 0.3 }));
 
-  if (typeof motion.scroll === "function") {
-    motion.scroll((progress) => { $("#scrollProgress").style.transform = `scaleX(${progress})`; });
-  }
+  setupScrollMotion();
   if (typeof motion.inView === "function") {
-    motion.inView(".section-title, .evidence-strip", (element) => {
-      playMotion(element, { opacity: [0.35, 1], y: [16, 0] }, springTransition({ stiffness: 300, damping: 28 }));
-      return () => playMotion(element, { opacity: 0.68, y: -5 }, { duration: 0.14, ease: "easeOut" });
+    motion.inView(".section-title, .evidence-strip, .motion-reveal", (element) => {
+      const prominent = element.classList.contains("motion-reveal");
+      playMotion(element, { opacity: [0.28, 1], y: [prominent ? 34 : 16, 0], scale: [prominent ? 0.98 : 0.995, 1] }, springTransition({ stiffness: 290, damping: 28 }));
+      return () => playMotion(element, { opacity: prominent ? 0.82 : 0.68, y: -5 }, { duration: 0.16, ease: "easeOut" });
     }, { margin: "-8% 0px -10% 0px", amount: 0.25 });
+    motion.inView(".support-link", (element) => {
+      playMotion(element, { opacity: [0, 1], y: [24, 0], rotate: [1.2, 0] }, springTransition({ stiffness: 330, damping: 27 }));
+    }, { margin: "-4% 0px -4% 0px", amount: 0.35 });
   }
   if (typeof motion.press === "function") {
     motion.press("button", (element) => {
@@ -983,6 +994,179 @@ function initializeMotionExperience() {
     if (!event.target.matches("input, select, textarea")) return;
     playMotion(event.target, { scale: [0.985, 1] }, springTransition({ stiffness: 500, damping: 28 }));
   });
+}
+
+function setupScrollMotion() {
+  if (typeof motion.scroll !== "function") return;
+  const progressBar = $("#scrollProgress");
+  const brandMark = document.querySelector(".brand-mark");
+  let target = 0;
+  let current = 0;
+  let velocity = 0;
+  let frame = 0;
+  const update = () => {
+    velocity = (velocity + (target - current) * 0.16) * 0.72;
+    current += velocity;
+    progressBar.style.transform = `scaleX(${Math.max(0, Math.min(1, current))})`;
+    document.documentElement.style.setProperty("--page-progress", current.toFixed(4));
+    if (brandMark) brandMark.style.transform = `translateY(${(current * 3).toFixed(2)}px) rotate(${(current * 6).toFixed(2)}deg)`;
+    if (Math.abs(target - current) > 0.0002 || Math.abs(velocity) > 0.0002) frame = requestAnimationFrame(update);
+    else frame = 0;
+  };
+  motion.scroll((progress) => {
+    target = progress;
+    if (!frame) frame = requestAnimationFrame(update);
+  });
+}
+
+function setupPointerHalo() {
+  const halo = $("#pointerHalo");
+  if (!halo || reducedMotion || !window.matchMedia("(pointer: fine)").matches) return;
+  const pointer = { x: -40, y: -40, width: 18, height: 18 };
+  const target = { ...pointer };
+  const velocity = { x: 0, y: 0, width: 0, height: 0 };
+  let frame = 0;
+
+  const tick = () => {
+    let moving = false;
+    for (const key of ["x", "y", "width", "height"]) {
+      velocity[key] = (velocity[key] + (target[key] - pointer[key]) * 0.2) * 0.64;
+      pointer[key] += velocity[key];
+      moving ||= Math.abs(target[key] - pointer[key]) > 0.04 || Math.abs(velocity[key]) > 0.04;
+    }
+    halo.style.width = `${Math.max(10, pointer.width)}px`;
+    halo.style.height = `${Math.max(10, pointer.height)}px`;
+    halo.style.borderRadius = `${Math.min(pointer.width, pointer.height) / 2}px`;
+    halo.style.transform = `translate3d(${pointer.x - pointer.width / 2}px, ${pointer.y - pointer.height / 2}px, 0)`;
+    frame = moving ? requestAnimationFrame(tick) : 0;
+  };
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
+
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const magnetic = event.target instanceof Element ? event.target.closest("[data-magnetic]") : null;
+    if (magnetic && !magnetic.matches(":disabled")) {
+      const rect = magnetic.getBoundingClientRect();
+      target.x = rect.left + rect.width / 2;
+      target.y = rect.top + rect.height / 2;
+      target.width = Math.min(190, rect.width + 8);
+      target.height = Math.min(64, rect.height + 8);
+      halo.dataset.snapped = "true";
+    } else {
+      target.x = event.clientX;
+      target.y = event.clientY;
+      target.width = 18;
+      target.height = 18;
+      delete halo.dataset.snapped;
+    }
+    halo.style.opacity = "1";
+    schedule();
+  }, { passive: true });
+  document.addEventListener("pointerdown", () => {
+    target.width *= 0.88;
+    target.height *= 0.88;
+    schedule();
+  }, { passive: true });
+  document.addEventListener("pointerup", (event) => {
+    const magnetic = event.target instanceof Element ? event.target.closest("[data-magnetic]") : null;
+    if (magnetic) {
+      const rect = magnetic.getBoundingClientRect();
+      target.width = Math.min(190, rect.width + 8);
+      target.height = Math.min(64, rect.height + 8);
+    } else {
+      target.width = 18;
+      target.height = 18;
+    }
+    schedule();
+  }, { passive: true });
+  document.documentElement.addEventListener("pointerleave", () => { halo.style.opacity = "0"; });
+  window.addEventListener("blur", () => { halo.style.opacity = "0"; });
+}
+
+function setupDocPreviews() {
+  document.addEventListener("click", (event) => {
+    const anchor = event.target instanceof Element ? event.target.closest("a[data-doc-preview]") : null;
+    if (!anchor || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const url = new URL(anchor.href);
+    if (url.hostname !== "docs.rc.asu.edu") return;
+    event.preventDefault();
+    openDocPreview(anchor);
+  });
+  $("#docBackdrop").addEventListener("click", closeDocPreview);
+  $("#closeDocPreview").addEventListener("click", closeDocPreview);
+  document.addEventListener("keydown", (event) => {
+    const modal = $("#docModal");
+    if (modal.hidden) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDocPreview();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [...$("#docPreview").querySelectorAll("button:not(:disabled), a[href]")];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+}
+
+async function openDocPreview(anchor) {
+  const sequence = ++docTransitionSequence;
+  const modal = $("#docModal");
+  const surface = $("#docPreview");
+  const backdrop = $("#docBackdrop");
+  activeDocAnchor = anchor;
+  docPreviousFocus = document.activeElement;
+  $("#docPreviewTitle").textContent = anchor.dataset.docTitle || anchor.textContent.trim();
+  $("#docPreviewSummary").textContent = anchor.dataset.docSummary || "Official guidance from ASU Research Computing.";
+  $("#docPreviewOpen").href = anchor.href;
+  $("#docPreviewHost").textContent = new URL(anchor.href).hostname;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  const transform = docExpansionTransform(anchor.getBoundingClientRect(), surface.getBoundingClientRect());
+  await Promise.all([
+    playMotion(backdrop, { opacity: [0, 1] }, { duration: 0.24, ease: "easeOut" }),
+    playMotion(surface, {
+      opacity: [0.5, 1], x: [transform.x, 0], y: [transform.y, 0],
+      scaleX: [transform.scaleX, 1], scaleY: [transform.scaleY, 1],
+    }, { duration: 0.44, ease: [0.39, 0.14, 0.26, 1] }),
+  ]);
+  if (sequence === docTransitionSequence) $("#closeDocPreview").focus();
+}
+
+async function closeDocPreview() {
+  const modal = $("#docModal");
+  if (modal.hidden) return;
+  const sequence = ++docTransitionSequence;
+  const surface = $("#docPreview");
+  const backdrop = $("#docBackdrop");
+  const sourceRect = activeDocAnchor?.isConnected ? activeDocAnchor.getBoundingClientRect() : null;
+  const transform = sourceRect ? docExpansionTransform(sourceRect, surface.getBoundingClientRect()) : { x: 0, y: 18, scaleX: 0.96, scaleY: 0.96 };
+  await Promise.all([
+    playMotion(backdrop, { opacity: [1, 0] }, { duration: 0.18, ease: "easeIn" }),
+    playMotion(surface, {
+      opacity: [1, 0], x: [0, transform.x], y: [0, transform.y],
+      scaleX: [1, transform.scaleX], scaleY: [1, transform.scaleY],
+    }, { duration: 0.32, ease: [0.46, 0.04, 0.97, 0.44] }),
+  ]);
+  if (sequence !== docTransitionSequence) return;
+  modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  const returnTarget = activeDocAnchor?.isConnected ? activeDocAnchor : docPreviousFocus;
+  activeDocAnchor = null;
+  returnTarget?.focus?.();
+}
+
+function docExpansionTransform(source, destination) {
+  return {
+    x: source.left - destination.left,
+    y: source.top - destination.top,
+    scaleX: Math.max(0.12, Math.min(1, source.width / destination.width)),
+    scaleY: Math.max(0.08, Math.min(1, source.height / destination.height)),
+  };
 }
 
 function setupQuickActions() {
@@ -1003,6 +1187,7 @@ function setupQuickActions() {
       await switchWorkflow($("#diagnoseTab"));
       $("#loadDiagnosisDemoButton").click();
     }
+    if (action === "support") $("#supportHub").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   });
   document.addEventListener("pointerdown", (event) => {
     if (toggle.getAttribute("aria-expanded") === "true" && !event.target.closest(".quick-actions")) setQuickActions(false);
