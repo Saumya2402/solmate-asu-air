@@ -965,7 +965,6 @@ function initializeMotionExperience() {
   window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
   setupDocPreviews();
   setupQuickActions();
-  setupPointerHalo();
   if (reducedMotion || typeof motion.animate !== "function") return;
 
   playMotion(document.querySelectorAll(".brand, .header-actions"), { opacity: [0, 1], y: [-12, 0] }, { duration: 0.42, delay: motion.stagger?.(0.08), ease: "circOut" });
@@ -1017,70 +1016,6 @@ function setupScrollMotion() {
     target = progress;
     if (!frame) frame = requestAnimationFrame(update);
   });
-}
-
-function setupPointerHalo() {
-  const halo = $("#pointerHalo");
-  if (!halo || reducedMotion || !window.matchMedia("(pointer: fine)").matches) return;
-  const pointer = { x: -40, y: -40, width: 18, height: 18 };
-  const target = { ...pointer };
-  const velocity = { x: 0, y: 0, width: 0, height: 0 };
-  let frame = 0;
-
-  const tick = () => {
-    let moving = false;
-    for (const key of ["x", "y", "width", "height"]) {
-      velocity[key] = (velocity[key] + (target[key] - pointer[key]) * 0.2) * 0.64;
-      pointer[key] += velocity[key];
-      moving ||= Math.abs(target[key] - pointer[key]) > 0.04 || Math.abs(velocity[key]) > 0.04;
-    }
-    halo.style.width = `${Math.max(10, pointer.width)}px`;
-    halo.style.height = `${Math.max(10, pointer.height)}px`;
-    halo.style.borderRadius = `${Math.min(pointer.width, pointer.height) / 2}px`;
-    halo.style.transform = `translate3d(${pointer.x - pointer.width / 2}px, ${pointer.y - pointer.height / 2}px, 0)`;
-    frame = moving ? requestAnimationFrame(tick) : 0;
-  };
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
-
-  document.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "touch") return;
-    const magnetic = event.target instanceof Element ? event.target.closest("[data-magnetic]") : null;
-    if (magnetic && !magnetic.matches(":disabled")) {
-      const rect = magnetic.getBoundingClientRect();
-      target.x = rect.left + rect.width / 2;
-      target.y = rect.top + rect.height / 2;
-      target.width = Math.min(190, rect.width + 8);
-      target.height = Math.min(64, rect.height + 8);
-      halo.dataset.snapped = "true";
-    } else {
-      target.x = event.clientX;
-      target.y = event.clientY;
-      target.width = 18;
-      target.height = 18;
-      delete halo.dataset.snapped;
-    }
-    halo.style.opacity = "1";
-    schedule();
-  }, { passive: true });
-  document.addEventListener("pointerdown", () => {
-    target.width *= 0.88;
-    target.height *= 0.88;
-    schedule();
-  }, { passive: true });
-  document.addEventListener("pointerup", (event) => {
-    const magnetic = event.target instanceof Element ? event.target.closest("[data-magnetic]") : null;
-    if (magnetic) {
-      const rect = magnetic.getBoundingClientRect();
-      target.width = Math.min(190, rect.width + 8);
-      target.height = Math.min(64, rect.height + 8);
-    } else {
-      target.width = 18;
-      target.height = 18;
-    }
-    schedule();
-  }, { passive: true });
-  document.documentElement.addEventListener("pointerleave", () => { halo.style.opacity = "0"; });
-  window.addEventListener("blur", () => { halo.style.opacity = "0"; });
 }
 
 function setupDocPreviews() {
@@ -1211,7 +1146,7 @@ async function setQuickActions(open) {
   playMotion(toggle, { scale: [0.94, 1] }, springTransition({ stiffness: 560, damping: 24 }));
   if (open) {
     menu.hidden = false;
-    await playMotion(items, { opacity: [0, 1], y: [18, 0], scale: [0.72, 1] }, springTransition({
+    await playMotion(items, { opacity: [0, 1], y: [18, 0], scale: [0.72, 1], rotate: [4, 0] }, springTransition({
       stiffness: 430,
       damping: 27,
       delay: motion.stagger?.(0.055, { from: "last" }),
@@ -1221,7 +1156,7 @@ async function setQuickActions(open) {
   }
   if (menu.hidden) return;
   const returnFocus = menu.contains(document.activeElement);
-  await playMotion(items, { opacity: [1, 0], y: [0, 12], scale: [1, 0.78] }, {
+  await playMotion(items, { opacity: [1, 0], y: [0, 12], scale: [1, 0.78], rotate: [0, -4] }, {
     duration: 0.14,
     ease: "easeIn",
     delay: motion.stagger?.(0.025),

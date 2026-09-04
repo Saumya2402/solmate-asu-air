@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const app = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+const css = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
 const config = await readFile(new URL("../public/config.js", import.meta.url), "utf8");
 
 test("UI invalidates recommendation confirmation after edits and sends signed token", () => {
@@ -131,7 +132,7 @@ test("UI provides Motion-powered spring, scroll, exit, and floating-action inter
 });
 
 test("UI previews ASU documentation and exposes verified human support routes", () => {
-  for (const id of ["docModal", "docPreview", "docPreviewOpen", "pointerHalo", "supportHub"]) {
+  for (const id of ["docModal", "docPreview", "docPreviewOpen", "supportHub"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /https:\/\/asu\.service-now\.com\/sp\?/);
@@ -143,6 +144,9 @@ test("UI previews ASU documentation and exposes verified human support routes", 
   assert.match(app, /docExpansionTransform/);
   assert.match(app, /source\.dataset\.docPreview/);
   assert.match(app, /function setupScrollMotion/);
-  assert.match(app, /function setupPointerHalo/);
-  assert.match(app, /velocity\[key\]/);
+  assert.doesNotMatch(html, /pointerHalo|data-magnetic/);
+  assert.doesNotMatch(app, /setupPointerHalo|data-magnetic/);
+  assert.match(css, /\.floating-action\s*\{[^}]*width:\s*70px/s);
+  assert.match(css, /\.quick-action-label\s*\{[^}]*border-radius:\s*999px/s);
+  assert.match(css, /\.quick-action-item:nth-child\(2\)\s*\{[^}]*margin-right:\s*18px/s);
 });
