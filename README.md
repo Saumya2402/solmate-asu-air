@@ -2,7 +2,7 @@
 
 SolMate turns a plain-language research workload into a reviewed Slurm job plan, then helps diagnose failed jobs from exact evidence. Language understanding comes from ASU AI Research Platform (AIR) hosted models; deterministic code controls validation, script rendering, evidence checks, and terminal commands.
 
-[Open the live prototype](https://saumya2402.github.io/solmate-asu-air/) | [Read the submission overview](docs/SUBMISSION.md) | [Follow the product walkthrough](docs/WALKTHROUGH.md)
+[Open the live prototype](https://saumya2402.github.io/solmate-asu-air/) | [View the pitch deck](docs/pitch/SolMate_Pitch_Deck.pdf) | [Read the submission overview](docs/SUBMISSION.md) | [Follow the product walkthrough](docs/WALKTHROUGH.md)
 
 > The GitHub Pages interface needs the separately hosted SolMate API. If the temporary demo API is offline, run the project locally with the instructions below. AIR credentials are never stored in GitHub Pages or browser code.
 
@@ -142,6 +142,7 @@ reviews/      Independent implementation and critic reviews
 ## Documentation
 
 - [Submission overview and written responses](docs/SUBMISSION.md)
+- [Pitch deck](docs/pitch/SolMate_Pitch_Deck.pdf)
 - [Product walkthrough](docs/WALKTHROUGH.md)
 - [Architecture and data flow](docs/ARCHITECTURE.md)
 - [Validation evidence and limits](docs/VALIDATION.md)
