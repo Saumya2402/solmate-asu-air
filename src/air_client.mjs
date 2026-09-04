@@ -11,14 +11,14 @@ export class AirApiError extends Error {
 
 export class AirClient {
   constructor({
-    apiKey = process.env.OPENAI_API_KEY,
-    baseUrl = process.env.OPENAI_BASE_URL || "https://openai.rc.asu.edu/v1",
+    apiKey = process.env.AIR_API_KEY || process.env.OPENAI_API_KEY,
+    baseUrl = process.env.AIR_BASE_URL || process.env.OPENAI_BASE_URL || "https://openai.rc.asu.edu/v1",
     timeoutMs = 45_000,
     retries = 1,
     retryDelayMs = 500,
     fetchImpl = globalThis.fetch,
   } = {}) {
-    if (!apiKey) throw new Error("OPENAI_API_KEY is required for live AIR mode.");
+    if (!apiKey) throw new Error("AIR_API_KEY is required for live AIR mode.");
     if (typeof fetchImpl !== "function") throw new Error("A fetch implementation is required.");
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/$/, "");

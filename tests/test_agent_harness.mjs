@@ -360,6 +360,10 @@ test("AIR client uses documented endpoint, bearer authorization, and latency met
   assert.equal(typeof result.latencyMs, "number");
 });
 
+test("AIR client identifies the preferred AIR key variable when no key is supplied", () => {
+  assert.throws(() => new AirClient({ apiKey: "" }), /AIR_API_KEY is required/);
+});
+
 test("AIR client retries one transient response without exposing its body", async () => {
   let calls = 0;
   const fetchImpl = async () => {

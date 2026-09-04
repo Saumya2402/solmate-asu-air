@@ -1,160 +1,151 @@
 # SolMate: ASU Compute Concierge
 
-SolMate is a Spark Challenge prototype that uses ASU AIR-hosted models to interpret scientific workflows, detect software-specific execution concerns, review a deterministically rendered Slurm script, and diagnose supplied failure evidence. It never executes or submits generated commands.
+SolMate turns a plain-language research workload into a reviewed Slurm job plan, then helps diagnose failed jobs from exact evidence. Language understanding comes from ASU AI Research Platform (AIR) hosted models; deterministic code controls validation, script rendering, evidence checks, and terminal commands.
 
-## AIR attribution
+[Open the live prototype](https://saumya2402.github.io/solmate-asu-air/) | [Run the 90-second demo](docs/DEMO_GUIDE.md) | [Read the pitch](docs/PITCH.md)
 
-All language-model inference demonstrated by SolMate runs through ASU AIR-hosted models. AIR performs workload interpretation, typo review, safe completion suggestions, scheduler-profile selection, scientific planning, independent critique, script explanation, and failure diagnosis. Deterministic Node.js code validates AIR evidence and recommendations before rendering any Slurm content.
+> The GitHub Pages interface needs the separately hosted SolMate API. If the temporary demo API is offline, run the project locally with the instructions below. AIR credentials are never stored in GitHub Pages or browser code.
 
-## Architecture
+## What It Does
 
-~~~text
-Browser
-  -> local Node API
-     -> AIR fact extractor + independent fact auditor -> verbatim-evidence facts
-     -> deterministic ASU RC Docs retrieval -> bounded, cited policy context
-     -> AIR typo reviewer -> evidence-bound correction suggestions
-     -> AIR planner + completion and scheduler advisors -> validated intake object
-     -> conversational follow-up -> revised evidence and recommendations
-     -> AIR resource critic -> approved or controlled profiling values
-     -> deterministic completeness and policy gates
-     -> controlled Slurm renderer
-     -> AIR critic -> validated review object
-     -> AIR Slurm explainer -> exact-line teaching notes
-     -> deterministic Sol command templates
-     -> deterministic failure signals + AIR diagnostician -> exact evidence validation and triage disposition
-     -> browser-local job outcomes -> advisory context for later AIR planning
-~~~
+- Interprets workload descriptions and retains only facts supported by the user's words.
+- Runs independent AIR roles in parallel for extraction, typo review, completion, scheduler guidance, planning, critique, explanation, and diagnosis.
+- Asks focused follow-up questions and offers editable recommendations with rationale and uncertainty.
+- Explains beginner terms such as hardware queue (partition) and run policy (QoS).
+- Grounds ASU-specific guidance in a dated catalog of `docs.rc.asu.edu` sources.
+- Converts natural durations such as `5000 minutes` into canonical Slurm time.
+- Validates resource limits, scheduler pairs, required fields, and cross-field consistency before generation.
+- Renders Slurm scripts from validated structured data rather than model-authored shell text.
+- Produces copyable, human-controlled commands for upload, test-only validation, submission, monitoring, and evidence collection.
+- Diagnoses supplied scripts, logs, and metadata as confirmed, probable, or inconclusive, with exact evidence and relevant ASU guides.
+- Stores optional sanitized outcome feedback only in the user's browser; it does not train or modify an AIR model.
 
-The AIR fact extractor, independent fact auditor, typo reviewer, planner, completion advisor, and scheduler advisor run concurrently. AIR determines what the user's language means; deterministic intake code verifies that each returned quote exists, names the correct field category, and supports the returned value. Evidence-backed facts from earlier turns are revalidated against the accumulated transcript and retained when a later AIR response is partial. Newer verified facts override older ones. Before advice or review, deterministic retrieval selects at most a few relevant entries from the dated ASU RC Docs catalog in `knowledge/asu_rc_rules.json`. AIR receives those entries as authoritative ASU context, and the same source links are returned to the browser. The scheduler advisor can select only an exact profile pair; documentation or feedback cannot create a new pair or claim account entitlement. Responsibilities are separated across the files in src: AIR transport, agent orchestration, knowledge retrieval, intake, newcomer guidance, outcome sanitization, job validation/rendering, terminal handoff, diagnosis, and the HTTP boundary.
+SolMate never logs into Sol, executes generated commands, submits jobs, infers account permissions, or guarantees that a job will run.
 
-## Storage and privacy
-
-The repository is stored locally in the current workspace. This workspace is under a OneDrive-synced directory, so Windows may sync files to the user's ASU Microsoft storage.
-
-SolMate has no database and does not persist workload descriptions, follow-up answers, scripts, or logs. The optional outcome control stores at most 12 sanitized records in the user's browser. A record contains only workload category, software label, resource numbers, walltime, scheduler pair, and the selected outcome; it excludes descriptions, scripts, paths, logs, job names, notes, and credentials. These records may be sent to AIR as unverified advisory context on a later analysis, but they cannot override validation or ASU policy. In live mode, prompts are sent from the local Node server to https://openai.rc.asu.edu/v1/chat/completions. The AIR key remains in the server process environment and is never sent to browser code.
-
-## Build and test commands
+## Try It Locally
 
 Requirements: Node.js 20 or newer.
 
-~~~powershell
+```powershell
+git clone https://github.com/Saumya2402/solmate-asu-air.git
+cd solmate-asu-air
+git switch continued-development
 npm ci
 npm test
-npm run demo:mock
 npm run start:mock
-~~~
+```
 
-Open http://127.0.0.1:4173.
+Open `http://127.0.0.1:4173`. Mock mode exercises the complete interface deterministically without an AIR key and is intended for development and rehearsal, not proof of live AIR inference.
 
-## GitHub Pages deployment
+## Run With AIR
 
-GitHub Pages hosts the static browser interface only. The AIR credential and all model calls remain in the Node server; a credential must never be added to `public/config.js`, a repository variable, or browser code.
+Create an API key in Voyager, then load it into the current PowerShell session without writing it to a file:
 
-The manually triggered workflow in `.github/workflows/deploy-pages.yml` deploys `continued-development`. Configure the repository Pages source as **GitHub Actions**, then add this non-secret repository variable:
-
-~~~text
-SOLMATE_API_BASE_URL=https://your-server-side-solmate-api.example.edu
-~~~
-
-On that API host, set `AIR_ALLOWED_ORIGINS` to the exact Pages origin, for example `https://saumya2402.github.io`, and set `HOST=0.0.0.0` when the hosting platform requires it. The API URL must use HTTPS. Without an API URL, Pages intentionally displays the interface in a disconnected state and disables AIR actions instead of pretending to run them.
-
-The interface uses the pinned Motion JavaScript runtime for spring transitions, scroll progress, in-view reveals, press feedback, staggered AIR results, and the floating action menu. Motion is bundled into the static artifact during the Pages build; no animation code is loaded from a CDN.
-
-Build the same static artifact locally with:
-
-~~~powershell
-$env:SOLMATE_API_BASE_URL = "https://your-server-side-solmate-api.example.edu"
-npm run build:pages
-~~~
-
-For live AIR, load an active AIR API key into the current terminal without committing it:
-
-~~~powershell
+```powershell
 $secureAirKey = Read-Host "Paste the AIR API key" -AsSecureString
 $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureAirKey)
 try {
-  $env:OPENAI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
+  $env:AIR_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
 } finally {
   [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
 }
-$env:OPENAI_BASE_URL = "https://openai.rc.asu.edu/v1"
+$env:AIR_BASE_URL = "https://openai.rc.asu.edu/v1"
 $env:AIR_MODE = "live"
 npm run preflight:live
-npm run probe:openfoam:live
-npm run demo:live
 npm run start:live
-~~~
+```
 
-Clear the session key afterward with Remove-Item Env:OPENAI_API_KEY.
+Open `http://127.0.0.1:4173` and confirm the header shows `LIVE AIR`. Remove the session key when finished:
 
-There is no model-training command. The project uses hosted AIR inference. Run the model compatibility probe with npm run benchmark:models.
+```powershell
+Remove-Item Env:AIR_API_KEY
+```
 
-## Measured model choice
+There is no training command. SolMate uses hosted AIR inference.
 
-The extractor, typo reviewer, completion advisor, and scheduler advisor default to `qwen3-30b-a3b-instruct-2507`. The fact auditor, planner, critic, diagnostician, and script explainer retain `qwen3-coder-30b-a3b-instruct`. The assignments live in `src/model_router.mjs`, and each role remains independently configurable through the corresponding `AIR_*_MODEL` variable shown in `.env.example`.
+## Demo In 90 Seconds
 
-Recorded compatibility evidence is stored under `results/`. The latest stateful run took approximately 10-20 seconds per extraction/planning role, while earlier point measurements were faster. These are service observations, not latency guarantees. Run `npm run benchmark:models` to create a new sanitized workload-and-failure matrix for the configured candidate models.
+1. Open **Plan a job** and paste the complete workload from [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
+2. Point out live model provenance, cited ASU guidance, editable recommendations, and deterministic readiness checks.
+3. Generate the script, then show **Explain**, **Check**, and **Run**.
+4. Open **Diagnose a failure**, choose **Load documented demo**, and run the diagnosis.
+5. Show the exact `python: command not found` evidence, confidence tier, corrective action, and ASU documentation.
 
-Run `npm run benchmark:roles` for the bounded parallel fact-extractor comparison. It races at most three configured AIR candidates per sanitized fixture and records schema validity, validated field recall, and p50/p95 latency without storing prompts or raw model responses.
+## How It Works
 
-Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix. It uses an 18-second per-call cutoff and a process-wide concurrency cap of four. Set `AIR_ROLE_SUITE_ROLES=typo_reviewer,scheduler_advisor` to rerun only selected roles. The suite stores check names and aggregate scores, never prompts or raw responses.
+```text
+Browser -> SolMate Node API -> parallel AIR roles
+        -> evidence validation + dated ASU RC knowledge
+        -> deterministic readiness and scheduler gates
+        -> controlled Slurm renderer + AIR review
+        -> human-run Sol commands
 
-## HTTP API
+Failure evidence -> deterministic signals + AIR diagnosis
+                 -> evidence/source verification
+                 -> confirmed, probable, or inconclusive next action
+```
 
-- GET /api/health: mode, role models, rules version, dated scheduler choices, and plain-language scheduler definitions for the intake UI.
-- GET /api/demo-status: persistence and execution disclosures.
-- GET /api/demo-diagnosis: synthetic, ASU RC Docs-grounded Python command-not-found evidence rendered from the normal job specification path.
-- POST /api/intake: evidence-backed AIR interpretation, retrieved ASU RC documentation, bounded local outcome context, prioritized scientific follow-up, independently reviewed recommendations, conflict detection, and missing fields.
-- POST /api/generate: deterministic validation, script rendering, and AIR critique.
-- POST /api/handoff: deterministic Sol upload/test/submit command steps.
-- POST /api/failure-evidence: validated, non-executing evidence commands for submission, pending, running, and finished jobs.
-- POST /api/diagnose: AIR diagnosis with exact log/metadata evidence checks, triggered-rule validation, and a researcher/monitor/support disposition.
+The browser never receives the AIR key. Raw workloads and failure evidence are not persisted by the server. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for component boundaries, data flow, privacy, and deployment details.
 
-## Safety boundaries
+## Commands
 
-- Missing values remain unknown until supplied or explicitly confirmed.
-- Natural durations such as `5000 minutes`, `2.5 hours`, or `1 day, 2 hours and 30 minutes` are converted to canonical Slurm walltime before validation; a bare number remains ambiguous and is rejected.
-- Every AIR-extracted fact must cite an exact phrase in the user's description; deterministic recognition covers a small set of unambiguous values.
-- Recommendations are advisory. Unsupported OpenFOAM estimates can be replaced with bounded profiling profiles selected by AIR and rendered by deterministic code.
-- Modules and command arguments may be left blank when the workload does not need them; omitted values normalize to empty lists before validation.
-- AIR recommendations cannot bypass deterministic validation.
-- Recommendation confirmations are signed by the local server and bound to the exact values AIR returned.
-- Follow-up answers carry the prior signed scheduler recommendation forward only when it still matches the latest cluster, walltime, and dated profile; ordinary description edits request a fresh recommendation.
-- Partition and QoS are dependent selectors populated from the dated profiles in `knowledge/asu_rc_rules.json`; changing the cluster clears incompatible downstream choices.
-- Scheduler recommendation explanations are rendered from the validated dated profile, so AIR free-form text cannot invent a different queue limit.
-- ASU-specific advice is grounded in a small dated catalog of `docs.rc.asu.edu` pages. Retrieved sources are visible in the interface and are never treated as account entitlement.
-- Local outcome history is user reported, sanitized, bounded, and advisory. It is not reinforcement learning or model training.
-- Scheduler pairs and per-node limits are validated again on the server; unsupported pairs cannot render.
-- Parallel OpenFOAM commands require `-parallel`; users must still verify case decomposition and environment modules.
-- Product plausibility ceilings are not represented as ASU policy.
-- Account-specific permissions are never inferred.
-- Arbitrary pasted scripts receive diagnosis and recommendations, not automatic rewriting.
-- Proposed scripts require human review and sbatch --test-only before submission.
-- The final submit command remains hidden until the user acknowledges the syntax and Slurm test-only checks.
-- That acknowledgement is signed by the local server and bound to the exact handoff values that were reviewed.
-- Diagnosis logs, scripts, metadata, and deterministic evidence are redacted as one outbound AIR payload.
-- A job ID entered in the evidence helper is used only by the local command builder. It is not stored or included in the AIR diagnosis request.
-- A diagnosis may cite a documentation rule only when its deterministic trigger is present. Unsupported evidence returns an inconclusive result instead of inventing a cause.
-- Automatic repairs are limited to exact app-rendered scripts and confirmed memory, time, command-environment, or dependency findings.
-- Credentials, Duo responses, SSH keys, and raw upstream error bodies are never collected.
+| Command | Purpose |
+| --- | --- |
+| `npm test` | Run the complete automated suite |
+| `npm run demo:mock` | Exercise plan and generation without AIR |
+| `npm run start:mock` | Start the deterministic local demo |
+| `npm run preflight:live` | Verify AIR connectivity and configured models |
+| `npm run start:live` | Start the local API with AIR inference |
+| `npm run demo:live` | Run a live command-line acceptance flow |
+| `npm run validate:diagnosis` | Run the diagnosis fixture matrix against a running API |
+| `npm run benchmark:models` | Compare configured AIR model compatibility |
+| `npm run benchmark:roles` | Benchmark parallel fact extraction |
+| `npm run benchmark:role-suite` | Screen the nine AIR roles |
+| `npm run build:pages` | Build the static GitHub Pages artifact |
 
-## Newcomer workflow
+## Deployment
 
-- AIR detects likely prose and software-name typos, with each original token verified against the supplied description. Technical identifiers are never silently rewritten.
-- Recommendations render as compact rows; rationale, assumptions, and tuning advice stay collapsed until requested.
-- The reviewed output uses Script, Explain, Check, and Run tabs so only one task is visible at a time.
-- Resource math shows total cores, core-hours, memory per task, and GPU-hours before and after generation.
-- AIR explanations must quote every meaningful generated script line exactly or the app falls back to deterministic explanations.
-- Deterministic environment checks cover the working directory, executable, modules, input script, and OpenFOAM decomposition where applicable.
-- Contextual ASU tools include `myjobs`, `seff`, `myaccounts`, `myquota`, module discovery, and mamba-first Python environment guidance with direct ASU RC Docs links.
-- The failure tab builds one-line evidence commands by job stage: `myjobs` and `thisjob` for active work, then `seff` and a bounded `sacct` report after the job finishes.
-- The failure tab includes a clearly labeled synthetic demo in which a valid Sol job starts but exits `127:0` because Python is unavailable in the clean batch environment. It traverses the same AIR diagnosis and evidence-validation path as researcher-supplied evidence.
-- Script-format, account/QoS, memory, timeout, dependency, permission, storage, signal, pending, running, completed, and infrastructure outcomes have documented deterministic checks; AIR handles explanation and narrower application context within those evidence boundaries.
-- Scheduler controls use `Hardware queue (partition)` and `Run policy (QoS)` labels, plus concise descriptions of each available option.
-- The Run tab covers upload/login, test-only validation, submission acknowledgement, monitoring, inspection, cancellation, accounting evidence, and efficiency review.
-- The Run tab can record whether the job succeeded, failed at submission/runtime, or used unsuitable resources; only the sanitized outcome profile remains in browser storage.
+GitHub Pages serves only the static interface. Live inference requires a separately hosted HTTPS Node API with these server-side variables:
 
-## Validation snapshot
+```text
+AIR_API_KEY=<server secret>
+AIR_BASE_URL=https://openai.rc.asu.edu/v1
+AIR_MODE=live
+AIR_ALLOWED_ORIGINS=https://saumya2402.github.io
+HOST=0.0.0.0
+```
 
-On 2026-09-03, the local suite passed 128/128 tests, including the documented Python command-not-found demo, readiness-state consistency, optional command fields, scheduler-rationale grounding, documentation retrieval, feedback sanitization, contextual tool guidance, Pages API separation, exact-origin CORS, Motion runtime delivery, UI contracts, fixture generation, security boundaries, failure-evidence commands, triggered-rule validation, and inconclusive fallbacks. A 24-case mock diagnosis matrix passed 24/24 and is recorded without raw logs in `results/results_diagnosis_mock_acceptance_20260903.json`. JavaScript syntax checks, the deterministic mock demo, the Pages build, HTTP asset checks, and `git diff --check` also passed. Live AIR previously recovered every supplied synthetic intake field, converted `2 hours` to `02:00:00`, accepted one sanitized outcome, and returned four relevant ASU RC Docs sources. Live generation passed deterministic validation, rendered an 18-line script, returned 15 exact-line explanations and six contextual ASU tools, and appropriately retained a review warning for an unverified GPU environment. Live failure diagnosis matched `COMMAND_NOT_FOUND_OR_MODULE` with exact evidence in 3196 ms. Sanitized evidence is recorded in `results/results_asu_docs_live_acceptance_20260903.json`. The expanded 24-case diagnosis matrix still requires a fresh live-server run. Browser breakpoint QA and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.
+Set the non-secret repository variable `SOLMATE_API_BASE_URL` to the HTTPS API origin, configure Pages to use GitHub Actions, and manually run `.github/workflows/deploy-pages.yml`. A temporary tunnel is suitable for a judged demo but not production hosting.
+
+## Evidence And Limits
+
+The current release has 133 automated tests plus sanitized live and mock acceptance artifacts. The evidence covers intake state retention, recommendation confirmation, duration normalization, scheduler selection, script safety, role routing, failure diagnosis, CORS, GitHub Pages separation, and interface contracts. It does not establish universal workload accuracy or guarantee account-specific access.
+
+See [docs/VALIDATION.md](docs/VALIDATION.md) for reproducible checks and current limitations. Historical `plans/`, `diary/`, `reviews/`, and `results/` are retained as the engineering audit trail.
+
+## Repository Map
+
+```text
+public/       Browser interface and interaction design
+src/          AIR orchestration, validation, rendering, and HTTP boundary
+knowledge/    Dated ASU Research Computing rules and source links
+fixtures/     Sanitized workload and failure acceptance cases
+tests/        Automated behavioral, safety, security, and UI checks
+scripts/      Local server, demos, benchmarks, and Pages build
+docs/         Demo, architecture, validation, and pitch material
+results/      Sanitized benchmark and acceptance summaries
+plans/        Approved implementation plans
+diary/        Timestamped implementation record
+reviews/      Independent implementation and critic reviews
+```
+
+## Documentation
+
+- [Demo guide](docs/DEMO_GUIDE.md)
+- [Architecture and data flow](docs/ARCHITECTURE.md)
+- [Validation evidence and limits](docs/VALIDATION.md)
+- [Pitch and presentation copy](docs/PITCH.md)
+- [ASU AIR API](https://docs.rc.asu.edu/ai/api/)
+- [ASU Slurm job scripts](https://docs.rc.asu.edu/slurm-sbatch/)
+- [ASU partitions and QoS](https://docs.rc.asu.edu/partitions-and-qos/)
+- [ASU job statistics](https://docs.rc.asu.edu/job-statistics/)

@@ -19,7 +19,7 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(currentDir, "../public");
 const motionBundlePath = path.resolve(currentDir, "../node_modules/motion/dist/motion.js");
 const lucideBundlePath = path.resolve(currentDir, "../node_modules/lucide/dist/umd/lucide.min.js");
-export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OPENAI_API_KEY ? "live" : "mock"), gateway, allowedOrigins = parseAllowedOrigins(process.env.AIR_ALLOWED_ORIGINS) } = {}) {
+export function createAppServer({ mode = process.env.AIR_MODE || (process.env.AIR_API_KEY || process.env.OPENAI_API_KEY ? "live" : "mock"), gateway, allowedOrigins = parseAllowedOrigins(process.env.AIR_ALLOWED_ORIGINS) } = {}) {
   if (!new Set(["mock", "live"]).has(mode)) throw new Error("AIR_MODE must be mock or live.");
   const selectedGateway = gateway || (mode === "live" ? new AirClient({
     timeoutMs: Number(process.env.AIR_TIMEOUT_MS || 45_000),

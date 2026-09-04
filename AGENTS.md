@@ -20,7 +20,7 @@ Build a reliable ASU AIR-powered prototype for the Spark Challenge. Prefer a sma
 ## Secrets
 
 - Never put API keys in source code, prompts, screenshots, logs, or committed configuration.
-- Read the AIR key from `OPENAI_API_KEY` on the server only.
+- Read the AIR key from `AIR_API_KEY` on the server only.
 - Keep `.env` and VS Code `chatLanguageModels.json` out of the repository.
 - Rotate a key immediately if it is exposed.
 
