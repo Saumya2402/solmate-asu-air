@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { beginnerWarnings, buildReadinessChecks, deterministicScriptExplanations, resourceMetrics, validateScriptExplanations } from "../src/newcomer_guidance.mjs";
+import { beginnerWarnings, buildReadinessChecks, buildToolGuidance, deterministicScriptExplanations, resourceMetrics, validateScriptExplanations } from "../src/newcomer_guidance.mjs";
 import { validateCorrections } from "../src/intake.mjs";
 import { renderSlurmScript } from "../src/job_spec.mjs";
 import { completeSpec } from "./fixtures.mjs";
@@ -21,6 +21,15 @@ test("beginner checks explain common resource and environment risks", () => {
   const warnings = beginnerWarnings({ ...completeSpec, tasks: 16, cpus: 2, modules: [] });
   assert.ok(warnings.some((item) => /32 total CPU cores/.test(item)));
   assert.ok(warnings.some((item) => /No modules/.test(item)));
+});
+
+test("contextual ASU tools teach monitoring and safe Python environments", () => {
+  const tools = buildToolGuidance({ ...completeSpec, modules: [] });
+  for (const id of ["myjobs", "seff", "myaccounts", "myquota", "module-spider", "python-environment"]) assert.ok(tools.some((tool) => tool.id === id));
+  const python = tools.find((tool) => tool.id === "python-environment");
+  assert.match(python.label, /pip only inside/i);
+  assert.match(python.command, /mamba\/latest/);
+  for (const tool of tools) assert.equal(new URL(tool.source.url).hostname, "docs.rc.asu.edu");
 });
 
 test("script explanations must cover and quote every meaningful line exactly", () => {

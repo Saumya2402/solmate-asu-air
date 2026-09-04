@@ -14,12 +14,14 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   const post = (path, body) => fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const health = await (await fetch(`${base}/api/health`)).json();
   assert.equal(health.mode, "mock");
-  assert.equal(health.rulesVersion, "2026-09-02");
+  assert.equal(health.rulesVersion, "2026-09-03");
+  assert.match(health.schedulerUi.glossary.qos.definition, /priority/i);
   assert.ok(health.schedulerOptions.some((item) => item.cluster === "sol" && item.partition === "public" && item.qos === "public"));
   const intakeResponse = await post("/api/intake", { description: "Train a PyTorch model on Sol." });
   assert.equal(intakeResponse.status, 200);
   const intakePayload = await intakeResponse.json();
   assert.equal(intakePayload.analysis.workloadType, "ml_training");
+  assert.ok(intakePayload.analysis.knowledgeSources.every((source) => new URL(source.url).hostname === "docs.rc.asu.edu"));
   const suggestedFields = new Set(intakePayload.analysis.recommendations.map((item) => item.field));
   for (const field of ["jobName", "outputPath", "errorPath", "partition", "qos"]) assert.ok(suggestedFields.has(field));
   const carriedResponse = await post("/api/intake", {
@@ -32,9 +34,14 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   const invalidResponse = await post("/api/intake", { description: "Run a large job on Sol.", values: { cpus: 10_000_000 } });
   assert.equal(invalidResponse.status, 422);
   assert.equal((await invalidResponse.json()).field, "cpus");
+  const outcomeResponse = await post("/api/intake", { description: "Run a Python job on Sol.", priorOutcomes: [{ outcome: "succeeded", workloadType: "ml_training", cpus: 4, workingDirectory: "/scratch/private" }] });
+  assert.equal(outcomeResponse.status, 200);
+  assert.equal((await outcomeResponse.json()).analysis.localOutcomeCount, 1);
   const generateResponse = await post("/api/generate", { description: "Train a PyTorch model on Sol.", spec: completeSpec });
   assert.equal(generateResponse.status, 200);
-  assert.match((await generateResponse.json()).script, /#SBATCH --partition=public/);
+  const generatePayload = await generateResponse.json();
+  assert.match(generatePayload.script, /#SBATCH --partition=public/);
+  assert.ok(generatePayload.guidance.tools.some((tool) => tool.id === "seff"));
   const handoffResponse = await post("/api/handoff", { asurite: "ssaum", localPath: "C:\\work\\image-training.slurm", remoteDirectory: "/scratch/ssaum/project", filename: "image-training.slurm" });
   assert.equal(handoffResponse.status, 200);
   const handoffPayload = await handoffResponse.json();

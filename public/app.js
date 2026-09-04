@@ -1,4 +1,5 @@
 const $ = (selector) => document.querySelector(selector);
+const OUTCOME_STORAGE_KEY = "solmate.outcomes.v1";
 const state = {
   recommendations: new Map(),
   confirmedRecommendations: new Map(),
@@ -11,6 +12,9 @@ const state = {
   recommendationToken: null,
   generatedSpec: null,
   schedulerProfiles: [],
+  schedulerUi: { glossary: {}, optionDescriptions: {} },
+  localOutcomes: readOutcomeHistory(),
+  latestAnalysis: null,
 };
 let analysisTimer = null;
 let analysisSequence = 0;
@@ -22,6 +26,9 @@ async function initialize() {
   try {
     const health = await api("/api/health");
     state.schedulerProfiles = Array.isArray(health.schedulerOptions) ? health.schedulerOptions : [];
+    state.schedulerUi = health.schedulerUi || state.schedulerUi;
+    $("#partitionLabel").title = state.schedulerUi.glossary?.partition?.definition || "Selects the hardware pool where the job may run.";
+    $("#qosLabel").title = state.schedulerUi.glossary?.qos?.definition || "Sets scheduler time, priority, and preemption rules.";
     syncSchedulerOptions();
     $("#modeStatus").dataset.mode = health.mode;
     $("#modeLabel").textContent = health.mode === "mock" ? "MOCK | LOCAL FIXTURES" : `LIVE AIR | ${health.models.planner}`;
@@ -88,6 +95,7 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
       description,
       priorFacts: state.acceptedFacts,
       priorRecommendationToken: preserveRecommendations ? state.recommendationToken : null,
+      priorOutcomes: state.localOutcomes,
     }, { signal: controller.signal });
     if (sequence !== analysisSequence) return false;
     renderIntake(payload, { scroll: !automatic });
@@ -131,7 +139,9 @@ function renderIntake(payload, { scroll = false } = {}) {
   state.recommendations.clear();
   state.recommendationToken = payload.recommendationToken || null;
   state.pendingAnswer = null;
+  state.latestAnalysis = { workloadType: payload.analysis.workloadType, software: payload.analysis.software || null };
   renderInterpretation(payload.analysis);
+  renderKnowledgeGrounding(payload.analysis.knowledgeSources || [], payload.analysis.localOutcomeCount || 0);
   const suggestedFields = new Set(payload.analysis.recommendations.map((item) => item.field));
   const draftedFields = new Set(payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && hasFormValue(form.elements.namedItem(field))));
   const unresolvedFields = payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && !draftedFields.has(field));
@@ -202,13 +212,14 @@ function syncSchedulerOptions({ partition, qos } = {}) {
   const qosSelect = form.elements.namedItem("qos");
   const profiles = state.schedulerProfiles.filter((profile) => profile.cluster === cluster);
   const selectedPartition = partition ?? partitionSelect.value;
-  replaceSelectOptions(partitionSelect, unique(profiles.map((profile) => profile.partition)), cluster ? "Select partition" : "Select cluster first", selectedPartition);
+  replaceSelectOptions(partitionSelect, unique(profiles.map((profile) => profile.partition)), cluster ? "Select hardware queue" : "Select cluster first", selectedPartition, (value) => schedulerOptionLabel("partition", value));
   partitionSelect.disabled = !cluster;
   const selectedQos = qos ?? qosSelect.value;
   const qosProfiles = profiles.filter((profile) => profile.partition === partitionSelect.value);
-  replaceSelectOptions(qosSelect, unique(qosProfiles.map((profile) => profile.qos)), partitionSelect.value ? "Select QoS" : "Select partition first", selectedQos, (value) => {
+  replaceSelectOptions(qosSelect, unique(qosProfiles.map((profile) => profile.qos)), partitionSelect.value ? "Select run policy" : "Select hardware queue first", selectedQos, (value) => {
     const profile = qosProfiles.find((item) => item.qos === value);
-    return profile?.requiresAccount ? `${value} (account required)` : value;
+    const label = schedulerOptionLabel("qos", value);
+    return profile?.requiresAccount ? label + " (account required)" : label;
   });
   qosSelect.disabled = !partitionSelect.value;
   const selectedProfile = qosProfiles.find((profile) => profile.qos === qosSelect.value);
@@ -327,6 +338,7 @@ function resetPlanningOutput() {
   state.pendingAnswer = null;
   state.script = "";
   state.generatedSpec = null;
+  state.latestAnalysis = null;
   $("#useGeneratedEvidenceButton").disabled = true;
   $("#planError").textContent = "";
 }
@@ -339,6 +351,7 @@ function markPlanningPending() {
   state.generatedSpec = null;
   $("#useGeneratedEvidenceButton").disabled = true;
   state.pendingAnswer = null;
+  $("#outcomeStatus").textContent = "";
   $("#planError").textContent = "";
   $("#generationStatus").textContent = "";
   $("#generationError").textContent = "";
@@ -461,6 +474,8 @@ function renderGenerated(payload) {
   renderList($("#reviewList"), [...payload.validation.warnings, ...payload.review.findings, ...payload.review.recommendations]);
   renderExplanations(payload.explanations, payload.agents.find((agent) => agent.role === "explainer"));
   renderGuidance(payload.guidance);
+  renderSourceLinks($("#generationKnowledgeSources"), payload.knowledgeSources || []);
+  renderOutcomeSelection();
 }
 
 function showAcceptedSuggestions(spec) {
@@ -526,6 +541,95 @@ function renderGuidance(guidance) {
     button.addEventListener("click", () => copyText(check.command, button));
     item.append(label, code, button); return item;
   }));
+  $("#toolGuidance").replaceChildren(...(guidance.tools || []).map((tool) => {
+    const item = document.createElement("li");
+    const label = document.createElement("strong"); label.textContent = tool.label + " - " + tool.when;
+    const code = document.createElement("code"); code.textContent = tool.command;
+    const source = document.createElement("a"); source.href = tool.source.url; source.target = "_blank"; source.rel = "noreferrer"; source.textContent = "ASU guide";
+    const button = document.createElement("button"); button.type = "button"; button.className = "secondary"; button.textContent = "Copy";
+    button.addEventListener("click", () => copyText(tool.command, button));
+    item.append(label, code, button, source); return item;
+  }));
+}
+
+document.querySelectorAll("[data-outcome]").forEach((button) => button.addEventListener("click", () => saveOutcome(button.dataset.outcome)));
+
+function saveOutcome(outcome) {
+  if (!state.generatedSpec || !state.latestAnalysis) return;
+  const spec = state.generatedSpec;
+  const record = {
+    outcome,
+    workloadType: state.latestAnalysis.workloadType,
+    software: state.latestAnalysis.software || undefined,
+    cpus: spec.cpus,
+    gpus: spec.gpus,
+    memoryGb: spec.memoryGb,
+    nodes: spec.nodes,
+    tasks: spec.tasks,
+    walltime: spec.walltime,
+    partition: spec.partition,
+    qos: spec.qos,
+  };
+  const signature = outcomeSignature(record);
+  state.localOutcomes = [...state.localOutcomes.filter((item) => outcomeSignature(item) !== signature), record].slice(-12);
+  try { window.localStorage.setItem(OUTCOME_STORAGE_KEY, JSON.stringify(state.localOutcomes)); } catch { /* Storage may be disabled. */ }
+  renderOutcomeSelection(outcome);
+  $("#outcomeStatus").textContent = "Outcome saved locally. AIR can use it as advisory context on the next analysis.";
+}
+
+function renderOutcomeSelection(selected = null) {
+  document.querySelectorAll("[data-outcome]").forEach((button) => {
+    const active = button.dataset.outcome === selected;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  if (!selected) $("#outcomeStatus").textContent = "";
+}
+
+function readOutcomeHistory() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(OUTCOME_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.slice(-12).map(normalizeBrowserOutcome).filter(Boolean) : [];
+  } catch { return []; }
+}
+
+function normalizeBrowserOutcome(record) {
+  if (!record || !["succeeded", "submission_failed", "runtime_failed", "resources_off"].includes(record.outcome)) return null;
+  if (!["general", "simulation", "ml_training", "distributed"].includes(record.workloadType)) return null;
+  const clean = { outcome: record.outcome, workloadType: record.workloadType };
+  if (typeof record.software === "string" && /^[A-Za-z0-9._+-]{1,64}$/.test(record.software)) clean.software = record.software;
+  for (const [field, min, max] of [["cpus", 1, 4096], ["gpus", 0, 64], ["memoryGb", 1, 32768], ["nodes", 1, 256], ["tasks", 1, 4096]]) {
+    if (Number.isInteger(record[field]) && record[field] >= min && record[field] <= max) clean[field] = record[field];
+  }
+  if (typeof record.walltime === "string" && /^\d{2,3}:[0-5]\d:[0-5]\d$/.test(record.walltime)) clean.walltime = record.walltime;
+  if (typeof record.partition === "string" && /^[A-Za-z0-9._+-]{1,64}$/.test(record.partition)) clean.partition = record.partition;
+  if (typeof record.qos === "string" && /^[A-Za-z0-9._+-]{1,64}$/.test(record.qos)) clean.qos = record.qos;
+  return clean;
+}
+
+function outcomeSignature(record) {
+  return [record.workloadType, record.software || "", record.cpus, record.gpus, record.memoryGb, record.nodes, record.tasks, record.walltime, record.partition, record.qos].join("|");
+}
+
+function renderKnowledgeGrounding(sources, outcomeCount) {
+  const bar = $("#groundingBar");
+  bar.hidden = sources.length === 0 && outcomeCount === 0;
+  renderSourceLinks($("#knowledgeSources"), sources);
+  $("#outcomeContext").textContent = outcomeCount ? outcomeCount + " local outcome" + (outcomeCount === 1 ? "" : "s") + " supplied as advisory context" : "";
+}
+
+function renderSourceLinks(container, sources) {
+  const uniqueSources = [...new Map(sources.map((source) => [source.url, source])).values()];
+  container.replaceChildren(...uniqueSources.map((source) => {
+    const item = document.createElement("li");
+    const anchor = document.createElement("a"); anchor.href = source.url; anchor.target = "_blank"; anchor.rel = "noreferrer"; anchor.textContent = source.title;
+    item.append(anchor); return item;
+  }));
+}
+
+function schedulerOptionLabel(kind, value) {
+  const description = state.schedulerUi.optionDescriptions?.[kind]?.[value];
+  return description ? value + " - " + description : value;
 }
 
 $("#copyScriptButton").addEventListener("click", () => copyText(state.script, $("#copyScriptButton")));
@@ -618,10 +722,8 @@ function renderDiagnosis(payload) {
   renderList($("#diagnosisAlternatives"), payload.diagnosis.alternatives || []);
   renderList($("#missingEvidence"), payload.diagnosis.missingEvidence || []);
   renderList($("#diagnosisRecommendations"), payload.diagnosis.recommendations);
-  const sourceList = $("#diagnosisSources");
-  sourceList.replaceChildren(...payload.applicableRules.map((rule) => {
-    const item = document.createElement("li"); const anchor = document.createElement("a"); anchor.href = rule.source; anchor.target = "_blank"; anchor.rel = "noreferrer"; anchor.textContent = `${rule.id}: ${rule.category}`; item.append(anchor); return item;
-  }));
+  const ruleSources = payload.applicableRules.map((rule) => ({ title: rule.id + ": " + rule.category, url: rule.source }));
+  renderSourceLinks($("#diagnosisSources"), [...ruleSources, ...(payload.knowledgeSources || [])]);
   const comparison = $("#repairComparison"); comparison.hidden = !payload.repair;
   if (payload.repair) { $("#originalScript").textContent = state.script; $("#proposedScript").textContent = payload.repair.script; }
   $("#redactionNote").textContent = payload.redactions ? `${payload.redactions} sensitive value(s) were redacted before the AIR request.` : "No sensitive patterns were detected.";

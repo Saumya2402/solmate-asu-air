@@ -1,6 +1,83 @@
 {
-  "version": "2026-09-02",
-  "checkedAt": "2026-09-02",
+  "version": "2026-09-03",
+  "checkedAt": "2026-09-03",
+  "schedulerGlossary": {
+    "partition": {
+      "plainLabel": "Hardware queue",
+      "definition": "A partition selects the pool of cluster hardware where the job may run."
+    },
+    "qos": {
+      "plainLabel": "Run policy",
+      "definition": "Quality of Service (QoS) sets scheduling rules such as time limits, priority, and preemption."
+    }
+  },
+  "schedulerOptionDescriptions": {
+    "partition": {
+      "public": "ASU Research Computing-owned CPU and GPU nodes",
+      "general": "privately owned nodes; access and preemption depend on QoS",
+      "htc": "short jobs up to four hours",
+      "highmem": "large-memory nodes",
+      "lightwork": "light or mostly idle work, up to eight CPU cores"
+    },
+    "qos": {
+      "public": "standard public-resource policy",
+      "private": "preemptible community access to privately owned nodes",
+      "class": "course access with class resource limits",
+      "debug": "short troubleshooting runs",
+      "long": "extended access granted case by case"
+    }
+  },
+  "documents": [
+    {
+      "id": "partitions-and-qos",
+      "title": "Partitions and QoS",
+      "url": "https://docs.rc.asu.edu/partitions-and-qos/",
+      "topics": ["partition", "qos", "scheduler", "walltime", "public", "general", "htc", "highmem", "lightwork", "class", "debug", "private"],
+      "summary": "Defines Sol partition hardware pools, compatible QoS policies, walltime limits, preemption behavior, and account-sensitive choices."
+    },
+    {
+      "id": "slurm-sbatch",
+      "title": "Slurm SBATCH Job Scripts",
+      "url": "https://docs.rc.asu.edu/slurm-sbatch/",
+      "topics": ["slurm", "sbatch", "script", "directive", "cpu", "memory", "gpu", "submit"],
+      "summary": "Explains ASU batch-script structure, resource directives, and submission conventions."
+    },
+    {
+      "id": "helpful-slurm-commands",
+      "title": "Helpful Slurm Commands",
+      "url": "https://docs.rc.asu.edu/helpful-slurm-commands/",
+      "topics": ["myjobs", "sq", "thisjob", "seff", "myfairshare", "myquota", "myaccounts", "monitor", "queue", "tool"],
+      "summary": "Lists ASU-provided commands for jobs, queues, efficiency, fairshare, quotas, software images, and allocations."
+    },
+    {
+      "id": "job-statistics",
+      "title": "Job Statistics",
+      "url": "https://docs.rc.asu.edu/job-statistics/",
+      "topics": ["seff", "sacct", "mysacct", "maxrss", "efficiency", "memory", "cpu", "failed", "completed", "diagnose"],
+      "summary": "Shows how to inspect completed-job CPU, memory, elapsed-time, state, and allocation evidence with seff, sacct, and mysacct."
+    },
+    {
+      "id": "job-states",
+      "title": "Understanding Job States",
+      "url": "https://docs.rc.asu.edu/jobstates/",
+      "topics": ["pending", "failed", "timeout", "state", "reason", "queue", "diagnose"],
+      "summary": "Explains Slurm job states and scheduler reasons used when investigating pending or failed jobs."
+    },
+    {
+      "id": "available-software",
+      "title": "Available Software",
+      "url": "https://docs.rc.asu.edu/available-software/",
+      "topics": ["software", "module", "modules", "module spider", "executable", "environment"],
+      "summary": "Directs researchers to the Sol module catalog and documents module naming conventions."
+    },
+    {
+      "id": "python-example",
+      "title": "Python Environment Example",
+      "url": "https://docs.rc.asu.edu/python-example/",
+      "topics": ["python", "pip", "mamba", "environment", "jupyter", "tensorflow", "pytorch"],
+      "summary": "Shows the ASU workflow for mamba environments and states that pip should be used only inside an activated mamba environment."
+    }
+  ],
   "productGuardrails": {
     "cpus": { "min": 1, "max": 4096 },
     "gpus": { "min": 0, "max": 64 },

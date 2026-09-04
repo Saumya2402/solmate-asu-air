@@ -1,9 +1,10 @@
 import { applyRepairPatch, extractJsonObject, isExactRenderedScript, renderSlurmScript, validateJobSpec, walltimeHours } from "./job_spec.mjs";
 import { extractExplicitJobName, extractExplicitWalltime, extractOpenFoamSolver, missingFields, normalizeAirFacts, normalizeExplicitFacts, normalizeIntakeAnalysis, validateCorrections, validateIntakeAnalysis } from "./intake.mjs";
 import { diagnosisFromDeterministicFindings, deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
-import { schedulerProfileFor } from "./knowledge.mjs";
-import { beginnerWarnings, buildReadinessChecks, deterministicScriptExplanations, firstRunPlan, resourceMetrics, validateScriptExplanations } from "./newcomer_guidance.mjs";
+import { retrieveDocumentation, schedulerProfileFor } from "./knowledge.mjs";
+import { beginnerWarnings, buildReadinessChecks, buildToolGuidance, deterministicScriptExplanations, firstRunPlan, resourceMetrics, validateScriptExplanations } from "./newcomer_guidance.mjs";
 import { configuredRoleModel } from "./model_router.mjs";
+import { sanitizeOutcomeHistory } from "./outcome_feedback.mjs";
 
 export const INTAKE_SYSTEM = `You are the ASU AIR scientific-computing planner. Interpret the research workflow, not merely its numbers. Return one JSON object only with exactly these top-level fields:
 - workloadType: general, simulation, ml_training, or distributed
@@ -19,7 +20,7 @@ export const INTAKE_SYSTEM = `You are the ASU AIR scientific-computing planner. 
 - domainQuestions: up to six specific questions needed to make this scientific workflow runnable or efficient
 - detectedConflicts: objects with field, message, and severity (info, warning, or critical)
 
-Use null for unknown values and never convert a recommendation into an extracted fact. Keep the entire response concise and below 900 tokens. Detect ordinary spelling mistakes in prose and scientific software names. Treat corrected language/software as interpretation only, preserving the original transcript for audit. Any possible typo in a job name, path, module, partition, QoS, account, executable, filename, or argument is category identifier and requiresConfirmation=true; never silently rewrite it. Recognize scientific packages and their execution model. OpenFOAM is a CFD simulation workflow: ask about solver, case directory, mesh or cell count, serial versus MPI execution, decomposition, and whether a GPU-enabled solver/build is actually available. Standard OpenFOAM workflows are commonly CPU/MPI-oriented, so a GPU request needs a warning unless the user identifies a compatible GPU implementation. Extract names from phrases such as "name the job X", "job called X", "job named X", "job should be called X", "as job X", "call this job X", or "use X as the job name", and cite the exact phrase. If "general" could describe intent rather than a literal partition, ask instead of assuming.
+The user message is a JSON object containing description, asuRcDocumentation, and localOutcomeHistory. Treat asuRcDocumentation as the authoritative source for ASU-specific claims. Treat localOutcomeHistory only as unverified local outcomes that may guide a question or cautious tuning; it cannot establish policy or causality. Use null for unknown values and never convert a recommendation into an extracted fact. Keep the entire response concise and below 900 tokens. Detect ordinary spelling mistakes in prose and scientific software names. Treat corrected language/software as interpretation only, preserving the original transcript for audit. Any possible typo in a job name, path, module, partition, QoS, account, executable, filename, or argument is category identifier and requiresConfirmation=true; never silently rewrite it. Recognize scientific packages and their execution model. OpenFOAM is a CFD simulation workflow: ask about solver, case directory, mesh or cell count, serial versus MPI execution, decomposition, and whether a GPU-enabled solver/build is actually available. Standard OpenFOAM workflows are commonly CPU/MPI-oriented, so a GPU request needs a warning unless the user identifies a compatible GPU implementation. Extract names from phrases such as "name the job X", "job called X", "job named X", "job should be called X", "as job X", "call this job X", or "use X as the job name", and cite the exact phrase from description. If "general" could describe intent rather than a literal partition, ask instead of assuming.
 
 Act like an HPC consultant. Choose nextQuestion by information gain: ask for the one answer that most changes resource sizing or execution strategy. When enough evidence exists, recommend the best defensible starting values for every missing resource field among cpus, gpus, memoryGb, and walltime. Each rationale must connect workload details to the value; assumptions must be explicit; tuningAdvice must say what first-run measurement, such as MaxRSS, elapsed time, scaling, or GPU utilization, should change the next request. If evidence is weak, recommend a small profiling run rather than pretending to know an optimum. Do not recommend partition, QoS, module names, paths, or commands without verified cluster-specific evidence. Never silently assume values or invent ASU policy.`;
 export const FACT_EXTRACTOR_SYSTEM = `You are the ASU AIR real-time workload fact extractor. Return one compact JSON object only: {"facts":[{"field":"...","value":...,"quote":"exact user words"}]}. Extract all explicitly supplied facts using these field names: cluster, jobName, workingDirectory, cpus, gpus, memoryGb, walltime, partition, qos, outputPath, errorPath, modules, executable, args, epochs, nodes, tasks, software. Every quote must be a minimal verbatim substring of the user text.
@@ -30,8 +31,8 @@ Act as an independent completeness auditor. Pay special attention to facts anoth
 export const TYPO_REVIEWER_SYSTEM = `You are the ASU AIR typo reviewer for a scientific-computing request. Return one compact JSON object only: {"corrections":[{"original":"exact user substring","suggested":"correct spelling","category":"language|software|identifier","confidence":"low|medium|high","requiresConfirmation":false}]}. Detect likely spelling mistakes in ordinary language and research software names, including omitted letters. Use category identifier and requiresConfirmation=true for any job name, path, module, partition, QoS, account, executable, filename, or command argument. Never rewrite an identifier silently. Ignore grammar/style preferences, do not change capitalization alone, and do not alter the established names Sol, Phoenix, Slurm, ASU, or AIR. Return at most six genuine corrections. Examples: OpenFom -> OpenFOAM as software; simualtion -> simulation as language. The original must be copied exactly from the user text.`;
 export const COMPLETION_ADVISOR_SYSTEM = `You are the ASU AIR Slurm specification completion advisor. Return one compact JSON object only in this exact shape: {"suggestions":{"jobName":"...","outputPath":"...","errorPath":"...","partition":"...","qos":"...","executable":"...","modules":[],"args":[],"nodes":1,"gpus":0},"reasons":{"field":"short reason"}}. Omit any field you cannot safely suggest.
 
-Recommend only fields the researcher did not explicitly provide. Create a short safe job name from the detected workload when one is missing. For output and error filenames, use valid Slurm filename substitutions such as %x for job name and %j for job ID so files remain identifiable. A named OpenFOAM solver such as pimpleFoam may be recommended as executable. For an OpenFOAM run with more than one MPI task, recommend args=["-parallel"] and explain that the case must already be decomposed. Standard CPU/MPI OpenFOAM may use gpus=0 unless the researcher identifies a verified GPU-enabled build. For a multi-task profiling run that fits one node, nodes=1 may be recommended with a scaling caveat. When no command arguments or environment modules were stated, recommend empty arrays and clearly require environment verification rather than inventing names. Select partition and QoS only as an exact pair from the supplied supportedSchedulerProfiles for the extracted cluster and requested walltime. Treat profiles as supported choices, not proof of account entitlement. Prefer a general-purpose profile when the researcher describes a general cluster workload. Never invent a profile, path, account, or entitlement. If no supported pair applies, omit both fields. Keep values editable and explain what the researcher should verify.`;
-export const SCHEDULER_ADVISOR_SYSTEM = `You are the ASU AIR scheduler-profile selector. Return JSON only: {"partition":"value","qos":"value","reason":"short reason"}. Select exactly one partition and QoS pair from supportedSchedulerProfiles matching the stated cluster and walltime. Prefer the general-purpose public profile unless the workload explicitly requests HTC or class use. This is an editable recommendation, not a claim of account entitlement. Return {"partition":null,"qos":null,"reason":"..."} when no supplied profile applies.`;
+Recommend only fields the researcher did not explicitly provide. Create a short safe job name from the detected workload when one is missing. For output and error filenames, use valid Slurm filename substitutions such as %x for job name and %j for job ID so files remain identifiable. A named OpenFOAM solver such as pimpleFoam may be recommended as executable. For an OpenFOAM run with more than one MPI task, recommend args=["-parallel"] and explain that the case must already be decomposed. Standard CPU/MPI OpenFOAM may use gpus=0 unless the researcher identifies a verified GPU-enabled build. For a multi-task profiling run that fits one node, nodes=1 may be recommended with a scaling caveat. When no command arguments or environment modules were stated, recommend empty arrays and clearly require environment verification rather than inventing names. Select partition and QoS only as an exact pair from the supplied supportedSchedulerProfiles for the extracted cluster and requested walltime. Treat supplied asuRcDocumentation as authoritative for ASU-specific claims and profiles as supported choices, not proof of account entitlement. Prefer a general-purpose profile when the researcher describes a general cluster workload. Never invent a profile, path, account, or entitlement. If no supported pair applies, omit both fields. Keep values editable and explain what the researcher should verify.`;
+export const SCHEDULER_ADVISOR_SYSTEM = `You are the ASU AIR scheduler-profile selector. Return JSON only: {"partition":"value","qos":"value","reason":"short reason"}. Select exactly one partition and QoS pair from supportedSchedulerProfiles matching the stated cluster and walltime. Use supplied asuRcDocumentation for ASU-specific meaning. Prefer the general-purpose public profile unless the workload explicitly requests HTC or class use. This is an editable recommendation, not a claim of account entitlement. Return {"partition":null,"qos":null,"reason":"..."} when no supplied profile applies.`;
 export const CRITIC_SYSTEM = `You are an independent ASU AIR HPC critic. Return one JSON object only with verdict (approve or review), findings, and recommendations. Every findings and recommendations item must be {"message":"...","basis":"spec|validation|policy","source":null}. Use basis policy only for a claim directly supported by supplied policyContext, and then source must exactly equal its supplied source URL. Otherwise use spec or validation and source null. Review the supplied validated specification and script. Do not invent ASU policies.`;
 export const SCRIPT_EXPLAINER_SYSTEM = `You are an ASU AIR Slurm teacher. Return one JSON object only: {"explanations":[{"lineNumber":1,"line":"exact script line","meaning":"plain-language meaning","newcomerTip":"one practical check"}]}. Explain every non-empty shebang, #SBATCH directive, shell-safety line, module command, and srun command. Cite each exact line and 1-based line number once. Do not add policy claims or commands that are absent from the script.`;
 export const RESOURCE_CRITIC_SYSTEM = `You are an independent ASU AIR job-recommendation critic. Return one concise JSON object only with verdict (approve or revise), reviews, findings, and profilingProfile. reviews must contain exactly one object for every proposed field, with field, decision (approve or reject), and a brief reason. profilingProfile must be none, openfoam_small, openfoam_medium, or openfoam_large.
@@ -54,18 +55,21 @@ export class AgentHarness {
     this.models = { extractor: extractorModel, factAuditor: factAuditorModel, typo: typoModel, completion: completionModel, scheduler: schedulerModel, planner: plannerModel, critic: criticModel, diagnostician: diagnosticianModel, explainer: explainerModel };
   }
 
-  async intake(description, { priorFacts = [], priorRecommendations = {}, signal } = {}) {
+  async intake(description, { priorFacts = [], priorRecommendations = {}, priorOutcomes = [], signal } = {}) {
     const normalized = validateDescription(description);
+    const documentationContext = retrieveDocumentation({ text: normalized, kind: "intake" });
+    const localOutcomeHistory = sanitizeOutcomeHistory(priorOutcomes);
+    const planningInput = JSON.stringify({ description: normalized, asuRcDocumentation: documentationContext, localOutcomeHistory });
     let [factResponse, response, factAuditResponse, typoResponse, completionResponse, schedulerResponse] = await Promise.all([
       this.gateway.chat({ model: this.models.extractor, temperature: 0, maxTokens: 600, signal, messages: [{ role: "system", content: FACT_EXTRACTOR_SYSTEM }, { role: "user", content: normalized }] }),
-      this.gateway.chat({ model: this.models.planner, temperature: 0, maxTokens: 1100, signal, messages: [{ role: "system", content: INTAKE_SYSTEM }, { role: "user", content: normalized }] }),
+      this.gateway.chat({ model: this.models.planner, temperature: 0, maxTokens: 1100, signal, messages: [{ role: "system", content: INTAKE_SYSTEM }, { role: "user", content: planningInput }] }),
       this.gateway.chat({ model: this.models.factAuditor, temperature: 0, maxTokens: 600, signal, messages: [{ role: "system", content: FACT_AUDITOR_SYSTEM }, { role: "user", content: normalized }] }).catch(() => null),
       this.gateway.chat({ model: this.models.typo, temperature: 0, maxTokens: 450, signal, messages: [{ role: "system", content: TYPO_REVIEWER_SYSTEM }, { role: "user", content: normalized }] }).catch(() => null),
       this.schedulerProfiles.length
-        ? this.gateway.chat({ model: this.models.completion, temperature: 0, maxTokens: 500, signal, messages: [{ role: "system", content: COMPLETION_ADVISOR_SYSTEM }, { role: "user", content: JSON.stringify({ description: normalized, supportedSchedulerProfiles: this.schedulerProfiles }) }] }).catch(() => null)
+        ? this.gateway.chat({ model: this.models.completion, temperature: 0, maxTokens: 500, signal, messages: [{ role: "system", content: COMPLETION_ADVISOR_SYSTEM }, { role: "user", content: JSON.stringify({ description: normalized, supportedSchedulerProfiles: this.schedulerProfiles, asuRcDocumentation: documentationContext }) }] }).catch(() => null)
         : Promise.resolve(null),
       this.schedulerProfiles.length
-        ? this.gateway.chat({ model: this.models.scheduler, temperature: 0, maxTokens: 220, signal, messages: [{ role: "system", content: SCHEDULER_ADVISOR_SYSTEM }, { role: "user", content: JSON.stringify({ description: normalized, supportedSchedulerProfiles: this.schedulerProfiles }) }] }).catch(() => null)
+        ? this.gateway.chat({ model: this.models.scheduler, temperature: 0, maxTokens: 220, signal, messages: [{ role: "system", content: SCHEDULER_ADVISOR_SYSTEM }, { role: "user", content: JSON.stringify({ description: normalized, supportedSchedulerProfiles: this.schedulerProfiles, asuRcDocumentation: documentationContext }) }] }).catch(() => null)
         : Promise.resolve(null),
     ]);
     let factPayload;
@@ -79,10 +83,12 @@ export class AgentHarness {
     try {
       parsed = await this.#parse(response, "planner", signal);
     } catch {
-      response = await this.gateway.chat({ model: this.models.planner, temperature: 0, maxTokens: 1100, signal, messages: [{ role: "system", content: `${INTAKE_SYSTEM}\nThe previous attempt was malformed. Return a shorter JSON object with no prose.` }, { role: "user", content: normalized }] });
+      response = await this.gateway.chat({ model: this.models.planner, temperature: 0, maxTokens: 1100, signal, messages: [{ role: "system", content: `${INTAKE_SYSTEM}\nThe previous attempt was malformed. Return a shorter JSON object with no prose.` }, { role: "user", content: planningInput }] });
       parsed = await this.#parse(response, "planner", signal);
     }
     const analysis = validateIntakeAnalysis(normalizeIntakeAnalysis(parsed));
+    analysis.knowledgeSources = documentationContext;
+    analysis.localOutcomeCount = localOutcomeHistory.length;
     let typoCorrections = [];
     if (typoResponse) {
       try {
@@ -153,7 +159,7 @@ export class AgentHarness {
     const conventionRecommendations = analysis.recommendations.filter((item) => !RESOURCE_RECOMMENDATION_FIELDS.has(item.field));
     if (resourceRecommendations.length) {
       try {
-        const criticInput = JSON.stringify({ workload: normalized, software: analysis.software, workflowSummary: analysis.workflowSummary, supportedSchedulerProfiles: this.schedulerProfiles, recommendations: resourceRecommendations });
+        const criticInput = JSON.stringify({ workload: normalized, software: analysis.software, workflowSummary: analysis.workflowSummary, supportedSchedulerProfiles: this.schedulerProfiles, asuRcDocumentation: documentationContext, localOutcomeHistory, recommendations: resourceRecommendations });
         let criticResponse = await this.gateway.chat({ model: this.models.critic, temperature: 0, maxTokens: 1400, signal, messages: [{ role: "system", content: RESOURCE_CRITIC_SYSTEM }, { role: "user", content: criticInput }] });
         let recommendationReview;
         try {
@@ -188,10 +194,11 @@ export class AgentHarness {
     if (!validation.valid) return { status: "rejected", spec, validation, script: null, review: null, agents: [] };
     const script = renderSlurmScript(spec);
     const profile = schedulerProfileFor(spec);
+    const documentationContext = retrieveDocumentation({ text: normalized, spec, kind: "generation" });
     const policyContext = profile ? { id: profile.id, limits: profile.limits, notes: profile.notes || null, source: profile.source } : null;
     const [response, explainerResponse] = await Promise.all([
-      this.gateway.chat({ model: this.models.critic, temperature: 0, maxTokens: 500, messages: [{ role: "system", content: CRITIC_SYSTEM }, { role: "user", content: JSON.stringify({ workload: normalized, spec, validation, script, policyContext }) }] }),
-      this.gateway.chat({ model: this.models.explainer, temperature: 0, maxTokens: 1400, messages: [{ role: "system", content: SCRIPT_EXPLAINER_SYSTEM }, { role: "user", content: JSON.stringify({ script }) }] }).catch(() => null),
+      this.gateway.chat({ model: this.models.critic, temperature: 0, maxTokens: 500, messages: [{ role: "system", content: CRITIC_SYSTEM }, { role: "user", content: JSON.stringify({ workload: normalized, spec, validation, script, policyContext, asuRcDocumentation: documentationContext }) }] }),
+      this.gateway.chat({ model: this.models.explainer, temperature: 0, maxTokens: 1400, messages: [{ role: "system", content: SCRIPT_EXPLAINER_SYSTEM }, { role: "user", content: JSON.stringify({ script, asuRcDocumentation: documentationContext }) }] }).catch(() => null),
     ]);
     const review = validateReview(await this.#parse(response, "critic"), profile ? [profile.source] : []);
     let explanations = deterministicScriptExplanations(script);
@@ -203,8 +210,9 @@ export class AgentHarness {
       readinessChecks: buildReadinessChecks(spec),
       beginnerWarnings: beginnerWarnings(spec),
       firstRun: firstRunPlan(spec),
+      tools: buildToolGuidance(spec),
     };
-    return { status: "reviewed", spec, validation, script, review, explanations, guidance, agents: [agentMetadata("critic", response), ...(explainerResponse ? [agentMetadata("explainer", explainerResponse)] : [])] };
+    return { status: "reviewed", spec, validation, script, review, explanations, guidance, knowledgeSources: documentationContext, agents: [agentMetadata("critic", response), ...(explainerResponse ? [agentMetadata("explainer", explainerResponse)] : [])] };
   }
 
   async generate(description) {
@@ -220,11 +228,12 @@ export class AgentHarness {
     const redactedScript = redactSensitive(script);
     const redactedMetadata = redactRecord(metadata);
     const findings = deterministicFindings(redactedLog.text, redactedMetadata.value);
+    const documentationContext = retrieveDocumentation({ text: `${redactedScript.text}\n${redactedLog.text}\n${JSON.stringify(redactedMetadata.value)}`, kind: "diagnosis" });
     let response = null;
     let diagnosis;
     let diagnosisValidation = { airAccepted: true, fallback: null };
     try {
-      response = await this.gateway.chat({ model: this.models.diagnostician, temperature: 0, maxTokens: 700, messages: [{ role: "system", content: DIAGNOSIS_SYSTEM }, { role: "user", content: JSON.stringify({ cluster, script: redactedScript.text, log: redactedLog.text, metadata: redactedMetadata.value, deterministicFindings: findings, rules: applicable }) }] });
+      response = await this.gateway.chat({ model: this.models.diagnostician, temperature: 0, maxTokens: 700, messages: [{ role: "system", content: DIAGNOSIS_SYSTEM }, { role: "user", content: JSON.stringify({ cluster, script: redactedScript.text, log: redactedLog.text, metadata: redactedMetadata.value, deterministicFindings: findings, rules: applicable, asuRcDocumentation: documentationContext }) }] });
       diagnosis = validateDiagnosis(await this.#parse(response, "diagnostician"), { log: redactedLog.text, metadata: redactedMetadata.value, allowedRuleIds: applicable.map((rule) => rule.id), rules: applicable, deterministicFindings: findings });
     } catch (error) {
       diagnosis = diagnosisFromDeterministicFindings(findings);
@@ -236,7 +245,7 @@ export class AgentHarness {
       try { repair = applyRepairPatch(originalSpec, diagnosis.patch); } catch { repair = null; }
     }
     const agent = response ? agentMetadata("diagnostician", response) : { role: "diagnostician", model: this.models.diagnostician, latencyMs: null, usage: null };
-    return { diagnosis, diagnosisValidation, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: applicable.map(({ id, category, source }) => ({ id, category, source })), agent };
+    return { diagnosis, diagnosisValidation, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: applicable.map(({ id, category, source }) => ({ id, category, source })), knowledgeSources: documentationContext, agent };
   }
 
   async #parse(response, role, signal) {

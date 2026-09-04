@@ -8,7 +8,8 @@ import { AgentHarness } from "./agent_harness.mjs";
 import { MockGateway } from "./mock_gateway.mjs";
 import { buildReadySpec, validatePlausibilityCandidate } from "./intake.mjs";
 import { buildSolHandoff } from "./terminal_handoff.mjs";
-import { asuRules as knowledge } from "./knowledge.mjs";
+import { asuRules as knowledge, schedulerUiKnowledge } from "./knowledge.mjs";
+import { sanitizeOutcomeHistory } from "./outcome_feedback.mjs";
 import { issueRecommendationToken, readRecommendationValues, verifyRecommendationConfirmations } from "./recommendation_token.mjs";
 import { issueHandoffToken, verifyHandoffAcknowledgement } from "./handoff_token.mjs";
 
@@ -29,10 +30,10 @@ export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OP
       const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
       if (request.method === "GET" && url.pathname === "/api/health") {
         const schedulerOptions = knowledge.profiles.map(({ id, cluster, partition, qos, requiresAccount = false, notes = null, source }) => ({ id, cluster, partition, qos, requiresAccount, notes, source }));
-        return sendJson(response, 200, { ok: true, mode, models: harness.models, rulesVersion: knowledge.version, schedulerOptions });
+        return sendJson(response, 200, { ok: true, mode, models: harness.models, rulesVersion: knowledge.version, schedulerOptions, schedulerUi: schedulerUiKnowledge() });
       }
       if (request.method === "GET" && url.pathname === "/api/demo-status") {
-        return sendJson(response, 200, { mode, live: mode === "live", persistedInputs: false, clusterExecution: false });
+        return sendJson(response, 200, { mode, live: mode === "live", persistedInputs: false, localOutcomeFeedback: true, clusterExecution: false });
       }
       if (request.method === "POST" && url.pathname.startsWith("/api/")) requireJson(request);
       if (request.method === "POST" && url.pathname === "/api/intake") {
@@ -49,7 +50,7 @@ export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OP
         const priorRecommendations = body.priorRecommendationToken == null
           ? {}
           : readRecommendationValues(body.priorRecommendationToken, recommendationSecret);
-        const result = await harness.intake(body.description, { priorFacts: body.priorFacts, priorRecommendations, signal: controller.signal });
+        const result = await harness.intake(body.description, { priorFacts: body.priorFacts, priorRecommendations, priorOutcomes: sanitizeOutcomeHistory(body.priorOutcomes), signal: controller.signal });
         return sendJson(response, 200, { ...result, recommendationToken: issueRecommendationToken(result.analysis.recommendations, recommendationSecret) });
       }
       if (request.method === "POST" && url.pathname === "/api/generate") {

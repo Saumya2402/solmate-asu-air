@@ -46,6 +46,7 @@ main { padding: 28px clamp(16px, 3vw, 48px) 42px; }
 .section-title p { margin: 0; color: var(--muted); line-height: 1.4; font-size: 14px; }
 label { display: grid; gap: 7px; margin-bottom: 15px; font-size: 12px; font-weight: 800; color: #3e4245; }
 input, select, textarea { width: 100%; border: 1px solid #aeb3b6; border-radius: 3px; padding: 10px 11px; background: white; color: var(--ink); }
+select { text-overflow: ellipsis; }
 textarea { min-height: 150px; resize: vertical; line-height: 1.45; }
 textarea.small { min-height: 92px; }
 input:focus, select:focus, textarea:focus, button:focus-visible { outline: 3px solid rgb(255 198 39 / 50%); outline-offset: 1px; border-color: var(--maroon); }
@@ -67,6 +68,13 @@ button:disabled { opacity: .6; cursor: wait; }
 .air-interpretation ul { margin: 0; padding-left: 19px; color: #484d51; font-size: 12px; line-height: 1.5; }
 .software-line { margin: 0; color: var(--muted); font-size: 12px; font-weight: 700; }
 .recommendation-basis { margin: 9px 0 0; color: #484d51; font-size: 12px; line-height: 1.5; }
+.grounding-bar { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); font-size: 10px; }
+.grounding-bar > strong { color: #145b46; text-transform: uppercase; }
+.grounding-bar > span { color: var(--muted); }
+.source-links, .source-list { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0; padding: 0; list-style: none; }
+.source-links a, .source-list a, .tool-guidance a { color: var(--maroon); font-weight: 750; }
+.source-links a::after { content: " /"; color: #aeb3b6; }
+.source-links li:last-child a::after { content: ""; }
 .correction-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
 .correction-bar > span, .recommendation-heading > span { color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; }
 .correction-bar > div { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -145,6 +153,18 @@ pre { margin: 0; max-height: 330px; overflow: auto; padding: 17px; background: #
 .compact-commands li { display: grid; grid-template-columns: minmax(100px, .6fr) minmax(0, 1.4fr) auto; align-items: center; gap: 7px; margin: 5px 0; padding: 6px 8px; background: white; }
 .compact-commands strong { margin: 0; }
 .compact-commands code { margin: 0; padding: 6px; }
+.tool-guidance { margin-bottom: 12px; }
+.tool-guidance .compact-commands { padding-left: 0; list-style: none; }
+.tool-guidance .compact-commands li > a { grid-column: 1 / -1; font-size: 10px; }
+.source-list { display: grid; gap: 5px; font-size: 11px; }
+.outcome-feedback { display: grid; gap: 9px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+.outcome-feedback > div:first-child { display: grid; gap: 3px; }
+.outcome-feedback strong { font-size: 13px; }
+.outcome-feedback small, #outcomeStatus { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.outcome-options { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #bfc3c5; }
+.outcome-options button { min-height: 34px; border: 0; border-right: 1px solid #d4d7d8; background: white; color: #4f5559; font-size: 10px; font-weight: 800; }
+.outcome-options button:last-child { border-right: 0; }
+.outcome-options button.active { background: #185844; color: white; }
 .acknowledgement { grid-template-columns: 18px 1fr; align-items: start; margin-top: 16px; padding: 11px; border-left: 3px solid var(--gold); background: #fff8dc; }
 .acknowledgement input { width: 16px; height: 16px; margin: 1px 0 0; }
 .submit-command { padding: 12px; border: 1px solid #d6bdc7; background: #f7eef1; }
@@ -172,6 +192,9 @@ footer { padding: 0 20px 28px; color: var(--muted); text-align: center; font-siz
   .compact-commands { padding-left: 0; list-style: none; }
   .compact-commands li { grid-template-columns: 1fr auto; }
   .compact-commands code { grid-column: 1 / -1; grid-row: 2; }
+  .outcome-options { grid-template-columns: repeat(2, 1fr); }
+  .outcome-options button:nth-child(2) { border-right: 0; }
+  .outcome-options button:nth-child(-n+2) { border-bottom: 1px solid #d4d7d8; }
   .repair-comparison > div { grid-template-columns: 1fr; }
   .toolbar { align-items: flex-start; flex-direction: column; }
 }

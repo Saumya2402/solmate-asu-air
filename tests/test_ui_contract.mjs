@@ -56,6 +56,16 @@ test("newcomer tools use compact recommendations and task tabs", () => {
   assert.match(app, /updateResourceEstimate/);
 });
 
+test("UI exposes ASU documentation grounding and local outcome feedback", () => {
+  for (const id of ["groundingBar", "knowledgeSources", "toolGuidance", "generationKnowledgeSources", "outcomeFeedback", "outcomeStatus"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /Hardware queue \(partition\)/);
+  assert.match(html, /Run policy \(QoS\)/);
+  assert.match(app, /OUTCOME_STORAGE_KEY/);
+  assert.match(app, /map\(normalizeBrowserOutcome\)\.filter\(Boolean\)/);
+  assert.match(app, /priorOutcomes: state\.localOutcomes/);
+  assert.match(app, /Outcome saved locally/);
+});
+
 test("partition and QoS are dependent scheduler-profile selects", () => {
   assert.match(html, /<select name="partition" required disabled>/);
   assert.match(html, /<select name="qos" required disabled>/);

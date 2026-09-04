@@ -40,6 +40,7 @@
               <h3 id="workflowSummary"></h3>
               <p id="detectedSoftware" class="software-line"></p>
               <p id="recommendationBasis" class="recommendation-basis"></p>
+              <div id="groundingBar" class="grounding-bar" hidden><strong>ASU RC Docs</strong><span id="outcomeContext"></span><ul id="knowledgeSources" class="source-links"></ul></div>
               <div id="correctionBar" class="correction-bar" hidden><span>AIR corrected</span><div id="correctionList"></div></div>
               <div id="advisorExchange" class="advisor-exchange" hidden>
                 <p class="advisor-name">AIR asks</p>
@@ -67,8 +68,8 @@
               <label>MPI tasks / ranks<input name="tasks" type="number" min="1" max="4096" placeholder="Required for MPI jobs"></label>
               <label>Memory (GB)<input name="memoryGb" type="number" min="1" max="32768" required></label>
               <label>Walltime<input name="walltime" required placeholder="HH:MM:SS"></label>
-              <label>Partition<select name="partition" required disabled><option value="">Select cluster first</option></select></label>
-              <label>QoS<select name="qos" required disabled><option value="">Select partition first</option></select></label>
+              <label><span id="partitionLabel">Hardware queue (partition)</span><select name="partition" required disabled><option value="">Select cluster first</option></select></label>
+              <label><span id="qosLabel">Run policy (QoS)</span><select name="qos" required disabled><option value="">Select partition first</option></select></label>
               <label id="accountField">Account, when required<input name="account" placeholder="Check myaccounts on the cluster"></label>
               <label>Executable<input name="executable" required placeholder="Not provided"></label>
               <label>Epochs<input name="epochs" type="number" min="1" placeholder="Required for ML training"></label>
@@ -110,6 +111,8 @@
               <div id="beginnerWarningBlock"><h3>Things to verify</h3><ul id="beginnerWarnings"></ul></div>
               <h3>Environment checks</h3>
               <ul id="readinessChecks" class="command-list compact-commands"></ul>
+              <details class="compact-details tool-guidance"><summary>ASU tools for this job</summary><ul id="toolGuidance" class="command-list compact-commands"></ul></details>
+              <details class="compact-details"><summary>Documentation used</summary><ul id="generationKnowledgeSources" class="source-list"></ul></details>
             </section>
             <section class="output-view" data-output-view="run" hidden>
               <form id="handoffForm" class="handoff-form">
@@ -124,6 +127,16 @@
               <ol id="handoffSteps" class="command-list"></ol>
               <label id="submissionAcknowledgement" class="acknowledgement" hidden><input type="checkbox">I reviewed the script and ran the syntax and Slurm test-only checks.</label>
               <div id="submitStep" hidden></div>
+              <section id="outcomeFeedback" class="outcome-feedback">
+                <div><strong>How did this run?</strong><small>AIR can use the sanitized outcome next time. Stored only in this browser.</small></div>
+                <div class="outcome-options" role="group" aria-label="Job outcome">
+                  <button type="button" data-outcome="succeeded">Succeeded</button>
+                  <button type="button" data-outcome="submission_failed">Submit failed</button>
+                  <button type="button" data-outcome="runtime_failed">Runtime failed</button>
+                  <button type="button" data-outcome="resources_off">Resources off</button>
+                </div>
+                <p id="outcomeStatus" aria-live="polite"></p>
+              </section>
             </section>
           </div>
         </section>

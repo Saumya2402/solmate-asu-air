@@ -12,6 +12,7 @@ All language-model inference demonstrated by SolMate runs through ASU AIR-hosted
 Browser
   -> local Node API
      -> AIR fact extractor + independent fact auditor -> verbatim-evidence facts
+     -> deterministic ASU RC Docs retrieval -> bounded, cited policy context
      -> AIR typo reviewer -> evidence-bound correction suggestions
      -> AIR planner + completion and scheduler advisors -> validated intake object
      -> conversational follow-up -> revised evidence and recommendations
@@ -22,15 +23,16 @@ Browser
      -> AIR Slurm explainer -> exact-line teaching notes
      -> deterministic Sol command templates
      -> AIR diagnostician -> exact evidence validation
+     -> browser-local job outcomes -> advisory context for later AIR planning
 ~~~
 
-The AIR fact extractor, independent fact auditor, typo reviewer, planner, completion advisor, and scheduler advisor run concurrently. AIR determines what the user's language means; deterministic intake code verifies that each returned quote exists, names the correct field category, and supports the returned value. Evidence-backed facts from earlier turns are revalidated against the accumulated transcript and retained when a later AIR response is partial. Newer verified facts override older ones. The completion advisor proposes editable naming, log paths, execution details, and empty module/argument lists without inventing software. The scheduler advisor can select only an exact pair from the dated profiles in `knowledge/asu_rc_rules.json`; it cannot claim account entitlement. Responsibilities are separated across the files in src: AIR transport, agent orchestration, intake, newcomer guidance, job validation/rendering, terminal handoff, diagnosis, and the HTTP boundary.
+The AIR fact extractor, independent fact auditor, typo reviewer, planner, completion advisor, and scheduler advisor run concurrently. AIR determines what the user's language means; deterministic intake code verifies that each returned quote exists, names the correct field category, and supports the returned value. Evidence-backed facts from earlier turns are revalidated against the accumulated transcript and retained when a later AIR response is partial. Newer verified facts override older ones. Before advice or review, deterministic retrieval selects at most a few relevant entries from the dated ASU RC Docs catalog in `knowledge/asu_rc_rules.json`. AIR receives those entries as authoritative ASU context, and the same source links are returned to the browser. The scheduler advisor can select only an exact profile pair; documentation or feedback cannot create a new pair or claim account entitlement. Responsibilities are separated across the files in src: AIR transport, agent orchestration, knowledge retrieval, intake, newcomer guidance, outcome sanitization, job validation/rendering, terminal handoff, diagnosis, and the HTTP boundary.
 
 ## Storage and privacy
 
 The repository is stored locally in the current workspace. This workspace is under a OneDrive-synced directory, so Windows may sync files to the user's ASU Microsoft storage.
 
-SolMate has no database and does not persist workload descriptions, follow-up answers, scripts, or logs. In live mode, prompts are sent from the local Node server to https://openai.rc.asu.edu/v1/chat/completions. The AIR key remains in the server process environment and is never sent to browser code.
+SolMate has no database and does not persist workload descriptions, follow-up answers, scripts, or logs. The optional outcome control stores at most 12 sanitized records in the user's browser. A record contains only workload category, software label, resource numbers, walltime, scheduler pair, and the selected outcome; it excludes descriptions, scripts, paths, logs, job names, notes, and credentials. These records may be sent to AIR as unverified advisory context on a later analysis, but they cannot override validation or ASU policy. In live mode, prompts are sent from the local Node server to https://openai.rc.asu.edu/v1/chat/completions. The AIR key remains in the server process environment and is never sent to browser code.
 
 ## Build and test commands
 
@@ -78,9 +80,9 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 
 ## HTTP API
 
-- GET /api/health: mode, role models, rules version, and dated cluster/partition/QoS choices for the intake UI.
+- GET /api/health: mode, role models, rules version, dated scheduler choices, and plain-language scheduler definitions for the intake UI.
 - GET /api/demo-status: persistence and execution disclosures.
-- POST /api/intake: evidence-backed AIR interpretation, prioritized scientific follow-up, independently reviewed recommendations, conflict detection, and missing fields.
+- POST /api/intake: evidence-backed AIR interpretation, retrieved ASU RC documentation, bounded local outcome context, prioritized scientific follow-up, independently reviewed recommendations, conflict detection, and missing fields.
 - POST /api/generate: deterministic validation, script rendering, and AIR critique.
 - POST /api/handoff: deterministic Sol upload/test/submit command steps.
 - POST /api/diagnose: AIR diagnosis with exact log/metadata evidence checks.
@@ -95,6 +97,8 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 - Recommendation confirmations are signed by the local server and bound to the exact values AIR returned.
 - Follow-up answers carry the prior signed scheduler recommendation forward only when it still matches the latest cluster, walltime, and dated profile; ordinary description edits request a fresh recommendation.
 - Partition and QoS are dependent selectors populated from the dated profiles in `knowledge/asu_rc_rules.json`; changing the cluster clears incompatible downstream choices.
+- ASU-specific advice is grounded in a small dated catalog of `docs.rc.asu.edu` pages. Retrieved sources are visible in the interface and are never treated as account entitlement.
+- Local outcome history is user reported, sanitized, bounded, and advisory. It is not reinforcement learning or model training.
 - Scheduler pairs and per-node limits are validated again on the server; unsupported pairs cannot render.
 - Parallel OpenFOAM commands require `-parallel`; users must still verify case decomposition and environment modules.
 - Product plausibility ceilings are not represented as ASU policy.
@@ -114,8 +118,11 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 - Resource math shows total cores, core-hours, memory per task, and GPU-hours before and after generation.
 - AIR explanations must quote every meaningful generated script line exactly or the app falls back to deterministic explanations.
 - Deterministic environment checks cover the working directory, executable, modules, input script, and OpenFOAM decomposition where applicable.
+- Contextual ASU tools include `myjobs`, `seff`, `myaccounts`, `myquota`, module discovery, and mamba-first Python environment guidance with direct ASU RC Docs links.
+- Scheduler controls use `Hardware queue (partition)` and `Run policy (QoS)` labels, plus concise descriptions of each available option.
 - The Run tab covers upload/login, test-only validation, submission acknowledgement, monitoring, inspection, cancellation, accounting evidence, and efficiency review.
+- The Run tab can record whether the job succeeded, failed at submission/runtime, or used unsuitable resources; only the sanitized outcome profile remains in browser storage.
 
 ## Validation snapshot
 
-On 2026-09-03, the local suite passed 83/83 tests, JavaScript syntax checks, the focused fixture/security run, the mock end-to-end demo, and a credential-pattern scan. Live AIR detected `OpenFom` and `simualtion` as corrections and suppressed a false capitalization suggestion for Sol. A separate live generation returned a valid approved script plus 16 exact-line explanations. A live replay of `job called imagev3` produced `jobName=imagev3` even when model extraction was not relied upon. Browser breakpoint QA, three repeated live runs, a recorded backup demo, and a human-controlled Sol `sbatch --test-only` remain manual acceptance tasks; they are not claimed as complete.
+On 2026-09-03, the local suite passed 108/108 tests, including documentation retrieval, feedback sanitization, contextual tool guidance, UI contracts, fixture generation, and security boundaries. JavaScript syntax checks and `git diff --check` also passed. Earlier live AIR checks detected `OpenFom` and `simualtion` as corrections, suppressed a false capitalization suggestion for Sol, returned a valid reviewed script with exact-line explanations, and recovered `jobName=imagev3` when model extraction omitted it. A fresh live AIR replay of the documentation-grounded payload, browser breakpoint QA, three repeated live runs, and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.

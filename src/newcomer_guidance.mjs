@@ -1,4 +1,5 @@
 import { walltimeHours } from "./job_spec.mjs";
+import { documentationSource } from "./knowledge.mjs";
 
 export function resourceMetrics(spec) {
   const nodes = Number.isInteger(spec.nodes) ? spec.nodes : 1;
@@ -52,6 +53,35 @@ export function firstRunPlan(spec) {
     summary: `Start with this ${metrics.totalCpuCores}-core, ${spec.memoryGb}-GB request and refine it from measured evidence.`,
     measurements: ["Elapsed time", "MaxRSS versus requested memory", "CPU efficiency", ...(spec.gpus > 0 ? ["GPU utilization"] : [])],
   };
+}
+
+export function buildToolGuidance(spec) {
+  const commandSource = documentationSource("helpful-slurm-commands");
+  const statisticsSource = documentationSource("job-statistics");
+  const softwareSource = documentationSource("available-software");
+  const pythonSource = documentationSource("python-example");
+  const tools = [
+    { id: "myjobs", label: "Find and monitor your jobs", command: "myjobs", when: "After submission", source: commandSource },
+    { id: "seff", label: "Check CPU and memory efficiency", command: "seff <jobID>", when: "After the job finishes", source: statisticsSource },
+    { id: "myaccounts", label: "List accounts and allowed QoS", command: "myaccounts", when: "Before choosing an account-sensitive policy", source: commandSource },
+  ];
+  if (String(spec.workingDirectory || "").startsWith("/scratch/")) {
+    tools.push({ id: "myquota", label: "Check scratch storage quota", command: "myquota", when: "Before a data-heavy run", source: commandSource });
+  }
+  if (spec.modules.length === 0) {
+    const software = safeSoftwareToken(spec.executable);
+    tools.push({ id: "module-spider", label: "Search installed software modules", command: `module spider ${software}`, when: "Before submitting", source: softwareSource });
+  }
+  if (isPythonWorkload(spec)) {
+    tools.push({
+      id: "python-environment",
+      label: "Use pip only inside an activated mamba environment",
+      command: "module load mamba/latest && source activate <env-name>",
+      when: "Before installing Python packages",
+      source: pythonSource,
+    });
+  }
+  return tools.filter((tool) => tool.source).map((tool) => ({ ...tool, source: { title: tool.source.title, url: tool.source.url } }));
 }
 
 export function deterministicScriptExplanations(script) {
@@ -114,6 +144,15 @@ function shellQuote(value) {
   const text = String(value);
   if (/^[A-Za-z0-9._/+:-]+$/.test(text)) return text;
   return `'${text.replaceAll("'", `'"'"'`)}'`;
+}
+
+function isPythonWorkload(spec) {
+  return /python/i.test(spec.executable) || spec.args.some((argument) => /\.py(?:\s|$)/i.test(argument));
+}
+
+function safeSoftwareToken(value) {
+  const token = String(value || "software").match(/[A-Za-z0-9._+-]+/)?.[0] || "software";
+  return shellQuote(token);
 }
 
 function round(value) {
