@@ -177,3 +177,15 @@ test("UI shows honest time-aware AIR progress and a shared animated workflow ind
   assert.match(app, /new ResizeObserver/);
   assert.match(css, /\.tab-indicator/);
 });
+
+test("UI eases into support, upgrades fields, and scrambles the visual brand safely", () => {
+  assert.match(html, /id="brandName" aria-hidden="true">SolMate/);
+  assert.match(html, /<span class="sr-only">SolMate<\/span>/);
+  assert.match(app, /function setupBrandScramble/);
+  assert.match(app, /const characters = "SLURM01#\?\/"/);
+  assert.match(app, /element\.id === "supportHub"/);
+  assert.match(app, /documentElement\.classList\.add\("motion-capable"\)/);
+  assert.match(css, /\.motion-capable \.support-hub\.motion-reveal/);
+  assert.match(css, /inset 3px 0 0 var\(--gold\)/);
+  assert.match(css, /input:disabled, select:disabled, textarea:disabled/);
+});

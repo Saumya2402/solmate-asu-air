@@ -54,6 +54,7 @@ a { color: var(--maroon); }
 .eyebrow, .subtitle { margin: 0; text-transform: uppercase; font-size: 10px; line-height: 1.15; font-weight: 850; }
 .eyebrow { color: var(--gold); }
 h1 { margin: 1px 0 2px; font-size: 26px; line-height: 1; letter-spacing: 0; }
+#brandName { display: inline-block; min-width: 7ch; }
 .subtitle { color: #cdd1d4; }
 .header-actions { display: flex; align-items: center; gap: 18px; }
 .docs-link { color: #f3f4f5; font-size: 12px; font-weight: 750; text-decoration: none; }
@@ -162,19 +163,24 @@ main { padding: 28px clamp(14px, 3vw, 42px) 54px; }
 .evidence-strip span:last-child { border-right: 0; }
 
 label { display: grid; gap: 7px; margin-bottom: 13px; color: #34393d; font-size: 12px; font-weight: 800; }
+label:focus-within { color: var(--maroon); }
 input, select, textarea {
-  width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 4px; padding: 10px 11px;
-  background: white; color: var(--ink); transition: border-color 120ms ease, box-shadow 120ms ease;
+  width: 100%; min-width: 0; border: 1px solid #c5cbd1; border-radius: 6px; padding: 11px 13px;
+  background: #fbfcfd; color: var(--ink); box-shadow: inset 0 1px 2px rgb(20 24 28 / 4%), 0 1px 0 rgb(255 255 255 / 90%);
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 180ms ease;
 }
-input, select { min-height: 42px; }
-select { text-overflow: ellipsis; }
+input, select { min-height: 46px; }
+select { text-overflow: ellipsis; cursor: pointer; }
 textarea { min-height: 142px; resize: vertical; line-height: 1.5; }
 textarea.small { min-height: 88px; }
-input:hover, select:hover, textarea:hover { border-color: #848c93; }
-input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
-  outline: 3px solid rgb(255 198 39 / 45%); outline-offset: 1px; border-color: var(--maroon);
+input:hover, select:hover, textarea:hover { border-color: #858e96; background: white; box-shadow: inset 0 1px 2px rgb(20 24 28 / 5%), 0 5px 16px rgb(20 24 28 / 6%); }
+input:focus, select:focus, textarea:focus {
+  outline: 0; border-color: var(--maroon); background: white;
+  box-shadow: inset 3px 0 0 var(--gold), 0 0 0 3px rgb(140 29 64 / 12%), 0 9px 24px rgb(20 24 28 / 8%);
 }
-input::placeholder, textarea::placeholder { color: #7c8389; opacity: 1; }
+button:focus-visible, a:focus-visible { outline: 3px solid rgb(255 198 39 / 45%); outline-offset: 2px; }
+input::placeholder, textarea::placeholder { color: #7b848c; opacity: 1; }
+input:disabled, select:disabled, textarea:disabled { border-color: #d8dce0; background: #f0f2f3; color: #737b82; box-shadow: none; cursor: not-allowed; }
 .air-progress { margin: 10px 0 7px; padding: 10px 12px; border-left: 3px solid var(--gold); background: #f7f8f9; }
 .air-progress-meta { min-height: 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #4d545a; font-size: 10px; font-weight: 800; }
 .air-progress-meta span:last-child { flex: 0 0 auto; color: var(--maroon); font-family: Consolas, monospace; }
@@ -332,10 +338,12 @@ pre { margin: 0; max-height: 350px; overflow: auto; padding: 17px; background: v
 .muted { color: var(--muted); font-size: 12px; }
 
 .support-hub {
+  position: relative;
   display: grid; grid-template-columns: minmax(260px, .72fr) minmax(520px, 1.28fr); gap: clamp(28px, 5vw, 82px);
   padding: clamp(44px, 6vw, 82px) max(clamp(18px, 5vw, 76px), calc((100vw - 1440px) / 2));
-  border-top: 5px solid var(--gold); background: #202327; color: white; overflow: hidden;
+  border-top: 5px solid var(--gold); border-radius: 8px 8px 0 0; background: #202327; color: white; overflow: hidden;
 }
+.motion-capable .support-hub.motion-reveal { opacity: 0; transform: translateY(28px); clip-path: inset(8% 0 0 0 round 22px 22px 0 0); will-change: transform, opacity, clip-path; }
 .support-intro { align-self: center; max-width: 520px; }
 .support-intro h2 { margin: 8px 0 13px; font-size: 34px; line-height: 1.08; letter-spacing: 0; }
 .support-intro > p:last-child { margin: 0; color: #c9ced2; font-size: 13px; line-height: 1.65; }

@@ -1106,10 +1106,12 @@ function initializeMotionExperience() {
   document.documentElement.classList.add("motion-ready");
   window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
   setupWorkflowTabIndicator();
+  setupBrandScramble();
   setupDocPreviews();
   setupQuickActions();
   setupAirGuidance();
   if (reducedMotion || typeof motion.animate !== "function") return;
+  document.documentElement.classList.add("motion-capable");
 
   playMotion(document.querySelectorAll(".brand, .header-actions"), { opacity: [0, 1], y: [-12, 0] }, { duration: 0.42, delay: motion.stagger?.(0.08), ease: "circOut" });
   playMotion($(".tabs"), { opacity: [0, 1], y: [-8, 0] }, { duration: 0.35, delay: 0.1, ease: "circOut" });
@@ -1119,6 +1121,13 @@ function initializeMotionExperience() {
   setupScrollMotion();
   if (typeof motion.inView === "function") {
     motion.inView(".section-title, .evidence-strip, .motion-reveal", (element) => {
+      if (element.id === "supportHub") {
+        playMotion(element, {
+          opacity: [0, 1], y: [28, 0],
+          clipPath: ["inset(8% 0 0 0 round 22px 22px 0 0)", "inset(0% 0 0 0 round 8px 8px 0 0)"],
+        }, { duration: 0.62, ease: [0.22, 0.75, 0.24, 1] });
+        return () => playMotion(element, { opacity: 0.9, y: 6 }, { duration: 0.22, ease: "easeOut" });
+      }
       const prominent = element.classList.contains("motion-reveal");
       playMotion(element, { opacity: [0.28, 1], y: [prominent ? 34 : 16, 0], scale: [prominent ? 0.98 : 0.995, 1] }, springTransition({ stiffness: 290, damping: 28 }));
       return () => playMotion(element, { opacity: prominent ? 0.82 : 0.68, y: -5 }, { duration: 0.16, ease: "easeOut" });
@@ -1137,6 +1146,37 @@ function initializeMotionExperience() {
     if (!event.target.matches("input, select, textarea")) return;
     playMotion(event.target, { scale: [0.985, 1] }, springTransition({ stiffness: 500, damping: 28 }));
   });
+}
+
+function setupBrandScramble() {
+  const brandName = $("#brandName");
+  const brand = brandName?.closest(".brand");
+  if (!brandName || !brand || reducedMotion) return;
+  const target = "SolMate";
+  const characters = "SLURM01#?/";
+  let run = 0;
+  const scramble = () => {
+    const currentRun = ++run;
+    const startedAt = performance.now();
+    const duration = 620;
+    const update = (now) => {
+      if (currentRun !== run) return;
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const resolved = Math.floor(progress * target.length);
+      brandName.textContent = [...target].map((character, index) => {
+        if (index < resolved || character === " ") return character;
+        return characters[Math.floor(Math.random() * characters.length)];
+      }).join("");
+      if (progress < 1) requestAnimationFrame(update);
+      else {
+        brandName.textContent = target;
+        playMotion(brandName, { opacity: [0.72, 1], y: [2, 0] }, { duration: 0.16, ease: "easeOut" });
+      }
+    };
+    requestAnimationFrame(update);
+  };
+  window.setTimeout(scramble, 520);
+  brand.addEventListener("mouseenter", scramble);
 }
 
 function setupWorkflowTabIndicator() {
