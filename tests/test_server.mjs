@@ -25,6 +25,9 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   const motionResponse = await fetch(`${base}/vendor/motion.js`);
   assert.equal(motionResponse.status, 200);
   assert.match(await motionResponse.text(), /globalThis.*Motion/);
+  const lucideResponse = await fetch(`${base}/vendor/lucide.js`);
+  assert.equal(lucideResponse.status, 200);
+  assert.match(await lucideResponse.text(), /globalThis.*lucide/);
   const intakeResponse = await post("/api/intake", { description: "Train a PyTorch model on Sol." });
   assert.equal(intakeResponse.status, 200);
   const intakePayload = await intakeResponse.json();

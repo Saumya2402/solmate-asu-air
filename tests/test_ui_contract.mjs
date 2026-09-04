@@ -114,13 +114,18 @@ test("UI exposes workflow progress, busy state, and accessible tab panels", () =
 
 test("UI provides Motion-powered spring, scroll, exit, and floating-action interactions", () => {
   assert.match(html, /src="\.\/vendor\/motion\.js"/);
+  assert.match(html, /src="\.\/vendor\/lucide\.js"/);
   assert.match(html, /id="quickActionToggle"/);
   assert.match(html, /id="quickActionMenu"/);
+  assert.match(html, /class="quick-action-button"/);
+  assert.match(html, /data-lucide="clipboard-pen-line"/);
   assert.match(html, /id="scrollProgress"/);
   assert.match(app, /motion\.scroll/);
   assert.match(app, /motion\.inView/);
   assert.match(app, /motion\.press/);
   assert.match(app, /type: "spring"/);
+  assert.match(app, /motion\.stagger/);
+  assert.match(app, /lucide\?\.createIcons/);
   assert.match(app, /opacity: \[1, 0\]/);
   assert.match(app, /prefers-reduced-motion/);
 });

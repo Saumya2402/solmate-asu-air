@@ -18,6 +18,7 @@ import { buildDocumentedDiagnosisDemo } from "./diagnosis_demo.mjs";
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(currentDir, "../public");
 const motionBundlePath = path.resolve(currentDir, "../node_modules/motion/dist/motion.js");
+const lucideBundlePath = path.resolve(currentDir, "../node_modules/lucide/dist/umd/lucide.min.js");
 export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OPENAI_API_KEY ? "live" : "mock"), gateway, allowedOrigins = parseAllowedOrigins(process.env.AIR_ALLOWED_ORIGINS) } = {}) {
   if (!new Set(["mock", "live"]).has(mode)) throw new Error("AIR_MODE must be mock or live.");
   const selectedGateway = gateway || (mode === "live" ? new AirClient({
@@ -118,8 +119,9 @@ async function readJsonBody(request, limit) {
 async function serveStatic(urlPath, response) {
   const relativePath = urlPath === "/" ? "index.html" : decodeURIComponent(urlPath.slice(1));
   const vendorMotion = relativePath === "vendor/motion.js";
-  const filePath = vendorMotion ? motionBundlePath : path.resolve(publicDir, relativePath);
-  if (!vendorMotion && !filePath.startsWith(`${publicDir}${path.sep}`) && filePath !== path.join(publicDir, "index.html")) return sendJson(response, 404, { error: "Not found." });
+  const vendorLucide = relativePath === "vendor/lucide.js";
+  const filePath = vendorMotion ? motionBundlePath : vendorLucide ? lucideBundlePath : path.resolve(publicDir, relativePath);
+  if (!vendorMotion && !vendorLucide && !filePath.startsWith(`${publicDir}${path.sep}`) && filePath !== path.join(publicDir, "index.html")) return sendJson(response, 404, { error: "Not found." });
   try {
     const content = await readFile(filePath);
     const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" }[path.extname(filePath)] || "application/octet-stream";

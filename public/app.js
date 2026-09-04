@@ -955,6 +955,7 @@ function showToast(message) {
 
 function initializeMotionExperience() {
   document.documentElement.classList.add("motion-ready");
+  window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
   setupQuickActions();
   if (reducedMotion || typeof motion.animate !== "function") return;
 
@@ -1016,18 +1017,34 @@ async function setQuickActions(open) {
   const sequence = ++quickActionSequence;
   const toggle = $("#quickActionToggle");
   const menu = $("#quickActionMenu");
+  const items = [...menu.querySelectorAll(".quick-action-item")];
+  const toggleIcon = toggle.querySelector(".floating-action-icon");
   toggle.setAttribute("aria-expanded", String(open));
   toggle.title = open ? "Close quick actions" : "Open quick actions";
-  playMotion(toggle.querySelector("[aria-hidden=true]"), { rotate: open ? 45 : 0 }, springTransition({ stiffness: 520, damping: 27 }));
+  toggle.querySelector(".sr-only").textContent = toggle.title;
+  playMotion(toggleIcon, { rotate: open ? 45 : 0 }, springTransition({ stiffness: 520, damping: 27 }));
+  playMotion(toggle, { scale: [0.94, 1] }, springTransition({ stiffness: 560, damping: 24 }));
   if (open) {
     menu.hidden = false;
-    await playMotion(menu, { opacity: [0, 1], y: [14, 0], scale: [0.92, 1] }, springTransition({ stiffness: 400, damping: 29 }));
-    menu.querySelector("button")?.focus();
+    await playMotion(items, { opacity: [0, 1], y: [18, 0], scale: [0.72, 1] }, springTransition({
+      stiffness: 430,
+      damping: 27,
+      delay: motion.stagger?.(0.055, { from: "last" }),
+    }));
+    if (sequence === quickActionSequence) menu.querySelector("button")?.focus();
     return;
   }
   if (menu.hidden) return;
-  await playMotion(menu, { opacity: [1, 0], y: [0, 8], scale: [1, 0.96] }, { duration: 0.14, ease: "easeIn" });
-  if (sequence === quickActionSequence) menu.hidden = true;
+  const returnFocus = menu.contains(document.activeElement);
+  await playMotion(items, { opacity: [1, 0], y: [0, 12], scale: [1, 0.78] }, {
+    duration: 0.14,
+    ease: "easeIn",
+    delay: motion.stagger?.(0.025),
+  });
+  if (sequence === quickActionSequence) {
+    menu.hidden = true;
+    if (returnFocus) toggle.focus();
+  }
 }
 
 function animateStagger(elements, { distance = 12, interval = 0.04 } = {}) {
