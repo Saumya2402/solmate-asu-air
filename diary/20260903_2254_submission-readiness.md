@@ -14,10 +14,10 @@ Turn the working `continued-development` branch into a clear public release cand
 ## Documentation
 
 - Rewrote `README.md` around the live prototype, capabilities, local mock use, live AIR use, demo flow, architecture, commands, deployment, evidence, limits, and repository map.
-- Added `docs/DEMO_GUIDE.md` with a live-rehearsed workload, 90-second walkthrough, failure demo, guardrail moment, and recovery plan.
+- Added a live-rehearsed product walkthrough with planning, failure diagnosis, and deterministic guardrail examples.
 - Added `docs/ARCHITECTURE.md` with planning and diagnosis boundaries, runtime ownership, privacy, deployment, and trust limits.
 - Added `docs/VALIDATION.md` with reproducible checks, accuracy contracts, current evidence, and approved claims.
-- Added `docs/PITCH.md` with a 25-word submission description, positioning, differentiators, 90-second script, finalist structure, and judge questions.
+- Added judge-facing submission material covering the use case, AIR implementation, collaboration, insights, features, evidence, and limitations.
 
 ## Configuration
 

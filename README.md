@@ -2,7 +2,7 @@
 
 SolMate turns a plain-language research workload into a reviewed Slurm job plan, then helps diagnose failed jobs from exact evidence. Language understanding comes from ASU AI Research Platform (AIR) hosted models; deterministic code controls validation, script rendering, evidence checks, and terminal commands.
 
-[Open the live prototype](https://saumya2402.github.io/solmate-asu-air/) | [Run the 90-second demo](docs/DEMO_GUIDE.md) | [Read the pitch](docs/PITCH.md)
+[Open the live prototype](https://saumya2402.github.io/solmate-asu-air/) | [Read the submission overview](docs/SUBMISSION.md) | [Follow the product walkthrough](docs/WALKTHROUGH.md)
 
 > The GitHub Pages interface needs the separately hosted SolMate API. If the temporary demo API is offline, run the project locally with the instructions below. AIR credentials are never stored in GitHub Pages or browser code.
 
@@ -63,9 +63,9 @@ Remove-Item Env:AIR_API_KEY
 
 There is no training command. SolMate uses hosted AIR inference.
 
-## Demo In 90 Seconds
+## Product Walkthrough
 
-1. Open **Plan a job** and paste the complete workload from [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
+1. Open **Plan a job** and paste the complete workload from [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md).
 2. Point out live model provenance, cited ASU guidance, editable recommendations, and deterministic readiness checks.
 3. Generate the script, then show **Explain**, **Check**, and **Run**.
 4. Open **Diagnose a failure**, choose **Load documented demo**, and run the diagnosis.
@@ -132,7 +132,7 @@ knowledge/    Dated ASU Research Computing rules and source links
 fixtures/     Sanitized workload and failure acceptance cases
 tests/        Automated behavioral, safety, security, and UI checks
 scripts/      Local server, demos, benchmarks, and Pages build
-docs/         Demo, architecture, validation, and pitch material
+docs/         Submission responses, product walkthrough, architecture, and validation
 results/      Sanitized benchmark and acceptance summaries
 plans/        Approved implementation plans
 diary/        Timestamped implementation record
@@ -141,10 +141,10 @@ reviews/      Independent implementation and critic reviews
 
 ## Documentation
 
-- [Demo guide](docs/DEMO_GUIDE.md)
+- [Submission overview and written responses](docs/SUBMISSION.md)
+- [Product walkthrough](docs/WALKTHROUGH.md)
 - [Architecture and data flow](docs/ARCHITECTURE.md)
 - [Validation evidence and limits](docs/VALIDATION.md)
-- [Pitch and presentation copy](docs/PITCH.md)
 - [ASU AIR API](https://docs.rc.asu.edu/ai/api/)
 - [ASU Slurm job scripts](https://docs.rc.asu.edu/slurm-sbatch/)
 - [ASU partitions and QoS](https://docs.rc.asu.edu/partitions-and-qos/)
