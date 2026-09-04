@@ -1,0 +1,63 @@
+{
+  "checkedAt": "2026-09-03T17:47:00-07:00",
+  "mode": "live",
+  "gateway": "https://openai.rc.asu.edu/v1",
+  "rulesVersion": "2026-09-03",
+  "privacy": {
+    "syntheticInputsOnly": true,
+    "promptsStored": false,
+    "rawResponsesStored": false,
+    "credentialsStored": false
+  },
+  "intake": {
+    "schemaValid": true,
+    "fixtureValid": true,
+    "extracted": {
+      "workloadType": "ml_training",
+      "software": "PyTorch",
+      "jobName": "docs-live-check",
+      "cpus": 4,
+      "gpus": 1,
+      "memoryGb": 32,
+      "walltime": "02:00:00",
+      "epochs": 20
+    },
+    "localOutcomeRecordsAccepted": 1,
+    "documentationSources": [
+      "Slurm SBATCH Job Scripts",
+      "Job Statistics",
+      "Python Environment Example",
+      "Partitions and QoS"
+    ],
+    "agentLatencyMs": {
+      "extractor": 1475,
+      "fact_auditor": 2739,
+      "typo_reviewer": 1635,
+      "completion_advisor": 9134,
+      "scheduler_advisor": 619,
+      "planner": 9960
+    }
+  },
+  "generation": {
+    "schemaValid": true,
+    "deterministicValidation": true,
+    "status": "reviewed",
+    "reviewVerdict": "review",
+    "scriptLines": 18,
+    "exactLineExplanations": 15,
+    "contextualTools": ["myjobs", "seff", "myaccounts", "myquota", "module-spider", "python-environment"],
+    "agentLatencyMs": {
+      "critic": 3131,
+      "explainer": 11285
+    }
+  },
+  "diagnosis": {
+    "schemaValid": true,
+    "evidenceValidation": true,
+    "category": "COMMAND_NOT_FOUND_OR_MODULE",
+    "confidence": "confirmed",
+    "ruleId": "slurm-command-not-found",
+    "model": "qwen3-coder-30b-a3b-instruct",
+    "latencyMs": 3196
+  }
+}
