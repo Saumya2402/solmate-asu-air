@@ -148,7 +148,7 @@ export class AgentHarness {
     }
     analysis.recommendations = carryForwardCompletionRecommendations(analysis.recommendations, priorRecommendations, analysis.extracted, this.schedulerProfiles, normalized);
     analysis.recommendations = carryForwardSchedulerRecommendations(analysis.recommendations, priorRecommendations, analysis.extracted, this.schedulerProfiles);
-    analysis.recommendations = analysis.recommendations.filter((item) => analysis.missingFields.includes(item.field));
+    analysis.recommendations = analysis.recommendations.filter((item) => analysis.missingFields.includes(item.field) || (item.field === "args" && analysis.extracted.args === undefined));
     const agents = [agentMetadata("extractor", factResponse)];
     if (factAuditResponse) agents.push(agentMetadata("fact_auditor", factAuditResponse));
     if (typoResponse) agents.push(agentMetadata("typo_reviewer", typoResponse));
@@ -289,7 +289,7 @@ function validateCompletionRecommendations(value, extracted, schedulerProfiles, 
     if (extracted.nodes === undefined && !candidates.some((item) => item?.field === "nodes")) candidates.push(recommendation("nodes", 1, "AIR selected a one-node profiling run before assuming multi-node scaling efficiency.", "Measure MPI scaling before increasing the node count."));
     if (extracted.args === undefined && !candidates.some((item) => item?.field === "args")) candidates.push(recommendation("args", ["-parallel"], "AIR recognized an MPI OpenFOAM run that requires the parallel solver flag after decomposition.", "Verify that the case has been decomposed before submission."));
   }
-  const allowed = new Set(["jobName", "outputPath", "errorPath", "partition", "qos", "executable", "modules", "args", "nodes", "gpus"]);
+  const allowed = new Set(["jobName", "outputPath", "errorPath", "partition", "qos", "executable", "args", "nodes", "gpus"]);
   const safeName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
   const safePath = /^(?!-)(?!.*\.\.)(?!.*[\r\n\0;&|`$<>])[A-Za-z0-9_./+%{}-]{1,240}$/;
   const result = candidates.filter((item) => {
@@ -299,7 +299,6 @@ function validateCompletionRecommendations(value, extracted, schedulerProfiles, 
     if (item.field === "outputPath" || item.field === "errorPath") return typeof item.value === "string" && safePath.test(item.value);
     if (item.field === "nodes") return Number.isInteger(item.value) && item.value >= 1 && item.value <= 256;
     if (item.field === "gpus") return Number.isInteger(item.value) && item.value >= 0 && item.value <= 64;
-    if (item.field === "modules") return Array.isArray(item.value) && item.value.length === 0;
     if (item.field === "args") return Array.isArray(item.value) && item.value.every((entry) => typeof entry === "string" && entry.length <= 160 && !/[\r\n\0;&|`$<>]/.test(entry));
     if (item.field === "executable") return typeof item.value === "string" && /^[A-Za-z0-9][A-Za-z0-9._/+:-]{0,159}$/.test(item.value);
     return typeof item.value === "string" && safeName.test(item.value);
@@ -349,8 +348,27 @@ function validateSchedulerRecommendationPair(recommendations, extracted, schedul
     const requestedHours = walltimeHours(extracted.walltime);
     const exceedsProfile = profile?.limits?.walltimeHours && Number.isFinite(requestedHours) && requestedHours > profile.limits.walltimeHours;
     if (!profile || exceedsProfile) return recommendations.filter((item) => !["partition", "qos"].includes(item.field));
+    const rationale = schedulerProfileRationale(profile);
+    return recommendations.map((item) => ["partition", "qos"].includes(item.field) ? {
+      ...item,
+      rationale,
+      assumptions: ["The profile is documented, but account entitlement is not known."],
+      tuningAdvice: "Confirm this profile is available to your account before submission.",
+    } : item);
   }
   return recommendations;
+}
+
+function schedulerProfileRationale(profile) {
+  const hours = Number(profile?.limits?.walltimeHours);
+  const limit = Number.isFinite(hours) ? ` Its configured walltime limit is ${formatDurationLimit(hours)}.` : "";
+  return `AIR selected the documented ${profile.partition}/${profile.qos} scheduler profile.${limit}`;
+}
+
+function formatDurationLimit(hours) {
+  if (hours < 1 && Number.isInteger(hours * 60)) return `${hours * 60} minutes`;
+  if (hours >= 24 && Number.isInteger(hours / 24)) return `${hours / 24} ${hours === 24 ? "day" : "days"}`;
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
 }
 
 function carryForwardSchedulerRecommendations(recommendations, priorValues, extracted, schedulerProfiles) {
@@ -370,7 +388,7 @@ function carryForwardSchedulerRecommendations(recommendations, priorValues, extr
 
 function carryForwardCompletionRecommendations(recommendations, priorValues, extracted, schedulerProfiles, description) {
   const byField = new Map(recommendations.map((item) => [item.field, item]));
-  const stableFields = ["jobName", "outputPath", "errorPath", "executable", "modules", "args", "nodes"];
+  const stableFields = ["jobName", "outputPath", "errorPath", "executable", "args", "nodes"];
   const carried = stableFields.flatMap((field) => {
     if (byField.has(field) || extracted[field] !== undefined || !Object.hasOwn(priorValues || {}, field)) return [];
     return [{

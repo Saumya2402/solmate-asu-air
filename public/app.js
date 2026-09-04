@@ -142,12 +142,6 @@ function renderIntake(payload, { scroll = false } = {}) {
   state.latestAnalysis = { workloadType: payload.analysis.workloadType, software: payload.analysis.software || null };
   renderInterpretation(payload.analysis);
   renderKnowledgeGrounding(payload.analysis.knowledgeSources || [], payload.analysis.localOutcomeCount || 0);
-  const suggestedFields = new Set(payload.analysis.recommendations.map((item) => item.field));
-  const draftedFields = new Set(payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && hasFormValue(form.elements.namedItem(field))));
-  const unresolvedFields = payload.analysis.missingFields.filter((field) => !suggestedFields.has(field) && !draftedFields.has(field));
-  const suggestedMessage = suggestedFields.size ? ` AIR prefilled editable suggestions for: ${[...suggestedFields].join(", ")}.` : "";
-  const draftedMessage = draftedFields.size ? ` Keeping your form values for: ${[...draftedFields].join(", ")}.` : "";
-  $("#missingFields").textContent = unresolvedFields.length ? `Still needs your input: ${unresolvedFields.join(", ")}.${suggestedMessage}${draftedMessage}` : `No blank required fields remain.${suggestedMessage}${draftedMessage}`;
   const container = $("#recommendations");
   container.replaceChildren();
   for (const recommendation of payload.analysis.recommendations) state.recommendations.set(recommendation.field, recommendation);
@@ -159,7 +153,7 @@ function renderIntake(payload, { scroll = false } = {}) {
   });
   for (const recommendation of payload.analysis.recommendations) {
     const input = form.elements.namedItem(recommendation.field);
-    if (input && !input.value) input.value = Array.isArray(recommendation.value) ? recommendation.value.join(",") : recommendation.value;
+    if (input && !input.value) input.value = Array.isArray(recommendation.value) ? recommendation.value.join(recommendation.field === "args" ? "\n" : ",") : recommendation.value;
     const item = document.createElement("div");
     item.className = "recommendation";
     const checkbox = document.createElement("input");
@@ -170,6 +164,7 @@ function renderIntake(payload, { scroll = false } = {}) {
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) state.confirmedRecommendations.set(recommendation.field, recommendationKey(recommendation.value));
       else state.confirmedRecommendations.delete(recommendation.field);
+      refreshReadinessMessage();
     });
     const identity = document.createElement("label");
     identity.className = "recommendation-identity";
@@ -197,6 +192,7 @@ function renderIntake(payload, { scroll = false } = {}) {
   const agents = payload.agents || [payload.agent];
   $("#agentLine").textContent = agents.map((agent) => `${agent.role}: ${agent.model} | ${agent.latencyMs ?? "n/a"} ms`).join(" | ");
   updateResourceEstimate();
+  refreshReadinessMessage();
   if (scroll) form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -251,12 +247,13 @@ $("#confirmAllSuggestions").addEventListener("click", () => {
     if (recommendation) state.confirmedRecommendations.set(recommendation.field, recommendationKey(recommendation.value));
   });
   $("#generationStatus").textContent = "AIR suggestions confirmed. You can still edit any field before generation.";
+  refreshReadinessMessage();
 });
 
 function renderInterpretation(analysis) {
   $("#airInterpretation").hidden = false;
   $("#workflowSummary").textContent = analysis.workflowSummary;
-  $("#detectedSoftware").textContent = analysis.software ? `Detected software: ${analysis.software}` : "Software was not identified yet.";
+  $("#detectedSoftware").textContent = analysis.software ? `Detected software or framework: ${analysis.software}` : "No specific software or framework was named; the executable can still be configured below.";
   $("#recommendationBasis").textContent = analysis.recommendationBasis;
   renderCorrections(analysis.corrections || []);
   state.nextQuestion = analysis.nextQuestion;
@@ -372,6 +369,7 @@ $("#specForm").addEventListener("input", (event) => {
     checkbox.checked = false;
     state.confirmedRecommendations.delete(input.name);
   }
+  refreshReadinessMessage();
 });
 
 function updateResourceEstimate() {
@@ -417,16 +415,19 @@ $("#specForm").addEventListener("submit", async (event) => {
     const confirmed = [...form.querySelectorAll("[data-confirm-field]:checked")].map((box) => box.dataset.confirmField);
     const unconfirmed = [...state.recommendations.keys()].filter((field) => {
       const input = form.elements.namedItem(field);
-      const recommendation = state.recommendations.get(field);
-      return String(input?.value ?? "") === String(recommendation.value) && !confirmed.includes(field);
+      return input && inputMatchesRecommendation(input, state.recommendations.get(field).value) && !confirmed.includes(field);
     });
-    if (unconfirmed.length) throw new Error(`Confirm or change AIR recommendations: ${unconfirmed.join(", ")}.`);
     const spec = readSpec(form);
+    const missing = missingLocalFields(spec);
+    const blockers = [
+      missing.length ? `Enter required values for: ${missing.join(", ")}.` : "",
+      unconfirmed.length ? `Confirm or change AIR recommendations for: ${unconfirmed.join(", ")}.` : "",
+    ].filter(Boolean);
+    if (blockers.length) throw new Error(blockers.join(" "));
     const payload = await api("/api/generate", { description: $("#description").value, spec, confirmedRecommendationFields: confirmed, recommendationToken: state.recommendationToken });
     renderGenerated(payload);
     $("#generationStatus").textContent = "Validation passed and the reviewed Slurm script is ready.";
   } catch (error) {
-    $("#planError").textContent = error.message;
     $("#generationError").textContent = error.message;
     $("#generationStatus").textContent = "Generation stopped. Correct the highlighted requirement and try again.";
     $("#generationError").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -448,6 +449,30 @@ function readSpec(form) {
     executable: value("executable"), args: value("args") ? value("args").split("\n").map((item) => item.trim()).filter(Boolean) : [],
     epochs: integer("epochs"), rationale: "Resources were supplied or explicitly confirmed through the guided intake."
   };
+}
+
+function missingLocalFields(spec) {
+  const required = ["cluster", "workloadType", "jobName", "workingDirectory", "cpus", "gpus", "memoryGb", "walltime", "partition", "qos", "outputPath", "errorPath", "executable"];
+  if (spec.workloadType === "ml_training") required.push("epochs");
+  if (spec.workloadType === "distributed" || (Number.isInteger(spec.tasks) && spec.tasks > 1)) required.push("nodes", "tasks");
+  const profile = state.schedulerProfiles.find((item) => item.cluster === spec.cluster && item.partition === spec.partition && item.qos === spec.qos);
+  if (profile?.requiresAccount) required.push("account");
+  return required.filter((field) => spec[field] === null || spec[field] === undefined || spec[field] === "");
+}
+
+function refreshReadinessMessage() {
+  const form = $("#specForm");
+  if (form.hidden) return;
+  const missing = missingLocalFields(readSpec(form));
+  const unconfirmed = [...state.recommendations.keys()].filter((field) => {
+    const input = form.elements.namedItem(field);
+    const checkbox = document.querySelector(`[data-confirm-field="${CSS.escape(field)}"]`);
+    return input && inputMatchesRecommendation(input, state.recommendations.get(field).value) && !checkbox?.checked;
+  });
+  const messages = [];
+  if (missing.length) messages.push(`Still needs your input: ${missing.join(", ")}.`);
+  if (unconfirmed.length) messages.push(`Confirm or change AIR recommendations: ${unconfirmed.join(", ")}.`);
+  $("#missingFields").textContent = messages.join(" ") || "Ready for deterministic validation and AIR review.";
 }
 
 function renderGenerated(payload) {

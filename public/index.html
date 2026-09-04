@@ -73,8 +73,8 @@
               <label id="accountField">Account, when required<input name="account" placeholder="Check myaccounts on the cluster"></label>
               <label>Executable<input name="executable" required placeholder="Not provided"></label>
               <label>Epochs<input name="epochs" type="number" min="1" placeholder="Required for ML training"></label>
-              <label class="wide">Modules, comma separated<input name="modules" placeholder="None provided"></label>
-              <label class="wide">Arguments, one per line<textarea name="args" class="small" placeholder="None provided"></textarea></label>
+              <label class="wide">Modules, comma separated<input name="modules" placeholder="Optional; leave blank when the script loads no modules"></label>
+              <label class="wide">Arguments, one per line<textarea name="args" class="small" placeholder="Optional; AIR may identify a script or application arguments"></textarea></label>
               <label>Output path<input name="outputPath" required placeholder="Not provided"></label>
               <label>Error path<input name="errorPath" required placeholder="Not provided"></label>
             </div>

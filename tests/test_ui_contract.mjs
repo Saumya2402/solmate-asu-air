@@ -45,7 +45,16 @@ test("UI distinguishes mock mode and retains unchanged user decisions", () => {
   assert.match(html, /id="mockModeNotice"/);
   assert.match(app, /MOCK \| LOCAL FIXTURES/);
   assert.match(app, /confirmedRecommendations/);
-  assert.match(app, /Keeping your form values/);
+  assert.match(app, /refreshReadinessMessage/);
+  assert.match(app, /missingLocalFields\(readSpec\(form\)\)/);
+});
+
+test("readiness uses actual form state and treats modules and arguments as optional", () => {
+  assert.match(html, /Modules, comma separated<input name="modules" placeholder="Optional;/);
+  assert.match(html, /Arguments, one per line<textarea name="args"[^>]*placeholder="Optional;/);
+  assert.match(app, /inputMatchesRecommendation\(input, state\.recommendations\.get\(field\)\.value\)/);
+  assert.match(app, /recommendation\.field === "args" \? "\\n" : ","/);
+  assert.doesNotMatch(app, /Still needs your input:.*payload\.analysis\.missingFields/);
 });
 
 test("successful generation collapses accepted suggestions and edits invalidate stale output", () => {

@@ -7,6 +7,18 @@ test("missing fields preserve explicit zero GPUs", () => {
   assert.ok(!missingFields({ ...completeSpec, gpus: 0 }).includes("gpus"));
 });
 
+test("modules and arguments are optional and normalize to empty arrays", () => {
+  const values = { ...completeSpec };
+  delete values.modules;
+  delete values.args;
+  assert.equal(missingFields(values).includes("modules"), false);
+  assert.equal(missingFields(values).includes("args"), false);
+  const result = buildReadySpec({ values });
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.spec.modules, []);
+  assert.deepEqual(result.spec.args, []);
+});
+
 test("ML training requires epochs unless externally configured", () => {
   assert.ok(missingFields({ ...completeSpec, epochs: undefined }).includes("epochs"));
   assert.ok(!missingFields({ ...completeSpec, epochs: undefined, epochsConfiguredExternally: true }).includes("epochs"));

@@ -31,13 +31,16 @@ test("deterministic intake converts a minute-based follow-up to Slurm walltime",
     if (system.includes("fact extractor")) return { model: "test", content: JSON.stringify({ facts: [{ field: "cluster", value: "sol", quote: "Sol" }, { field: "walltime", value: "5000", quote: "5000 minutes" }] }) };
     if (system.includes("typo reviewer")) return { model: "test", content: JSON.stringify({ corrections: [] }) };
     if (system.includes("completion advisor")) return { model: "test", content: JSON.stringify({ suggestions: {}, reasons: {} }) };
-    if (system.includes("scheduler-profile selector")) return { model: "test", content: JSON.stringify({ partition: "public", qos: "public", reason: "Use the documented general-purpose profile." }) };
+    if (system.includes("scheduler-profile selector")) return { model: "test", content: JSON.stringify({ partition: "public", qos: "public", reason: "The public partition has a four-hour walltime limit." }) };
     if (system.includes("job-recommendation critic")) return { model: "test", content: JSON.stringify({ verdict: "approve", reviews: [{ field: "partition", decision: "approve", reason: "Exact profile." }, { field: "qos", decision: "approve", reason: "Exact profile." }], findings: [], profilingProfile: "none" }) };
     return { model: "test", content: JSON.stringify({ workloadType: "ml_training", software: "PyTorch", workflowSummary: "Train a model on Sol.", recommendationBasis: "The duration is explicit.", corrections: [], nextQuestion: null, extracted: {}, extractedEvidence: [], missingFields: [], recommendations: [], domainQuestions: [], detectedConflicts: [] }) };
   } };
   const result = await new AgentHarness({ gateway, schedulerProfiles: [{ cluster: "sol", partition: "public", qos: "public", limits: { walltimeHours: 168 } }] }).intake("Train a model on Sol. Additional detail from the researcher: total training time is around 5000 minutes.");
   assert.equal(result.analysis.extracted.walltime, "83:20:00");
   assert.equal(result.analysis.missingFields.includes("walltime"), false);
+  const schedulerRationale = result.analysis.recommendations.find((item) => item.field === "partition")?.rationale;
+  assert.match(schedulerRationale, /configured walltime limit is 7 days/i);
+  assert.doesNotMatch(schedulerRationale, /four-hour/i);
 });
 
 test("AIR intake recognizes OpenFOAM, its job name, and GPU execution risk", async () => {
@@ -232,8 +235,8 @@ test("validated completion suggestions survive a follow-up omission and critic o
   assert.equal(values.jobName, "openfoam-job");
   assert.equal(values.outputPath, "%x.%j.out");
   assert.equal(values.errorPath, "%x.%j.err");
-  assert.deepEqual(values.modules, []);
   assert.deepEqual(values.args, []);
+  assert.equal(values.modules, undefined);
 });
 
 test("resource critic withholds a recommendation built on contradictory assumptions", async () => {

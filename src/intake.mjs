@@ -2,9 +2,9 @@ import { PRODUCT_LIMITS, validateJobSpec } from "./job_spec.mjs";
 
 export const BASE_REQUIRED_FIELDS = Object.freeze([
   "cluster", "workloadType", "jobName", "workingDirectory", "cpus", "gpus", "memoryGb",
-  "walltime", "partition", "qos", "outputPath", "errorPath", "modules", "executable", "args",
+  "walltime", "partition", "qos", "outputPath", "errorPath", "executable",
 ]);
-const AIR_FACT_FIELDS = new Set([...BASE_REQUIRED_FIELDS, "software", "epochs", "nodes", "tasks"]);
+const AIR_FACT_FIELDS = new Set([...BASE_REQUIRED_FIELDS, "modules", "args", "software", "epochs", "nodes", "tasks"]);
 
 export function requiredFieldsFor(values = {}) {
   const fields = [...BASE_REQUIRED_FIELDS];
@@ -102,7 +102,11 @@ function validConflict(item) {
 }
 
 export function buildReadySpec({ values, confirmedRecommendationFields = [] }) {
-  const normalizedValues = { ...values };
+  const normalizedValues = {
+    ...values,
+    modules: Array.isArray(values?.modules) ? values.modules : [],
+    args: Array.isArray(values?.args) ? values.args : [],
+  };
   const normalizedWalltime = durationToWalltime(values?.walltime);
   if (normalizedWalltime) normalizedValues.walltime = normalizedWalltime;
   const missing = missingFields(normalizedValues);
