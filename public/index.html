@@ -24,6 +24,7 @@
   <nav class="tabs" aria-label="Workflows" role="tablist">
     <button id="planTab" class="tab active" type="button" role="tab" data-tab="plan" aria-controls="planPanel" aria-selected="true"><span aria-hidden="true">01</span>Plan a job</button>
     <button id="diagnoseTab" class="tab" type="button" role="tab" data-tab="diagnose" aria-controls="diagnosePanel" aria-selected="false"><span aria-hidden="true">02</span>Diagnose a failure</button>
+    <span id="workflowTabIndicator" class="tab-indicator" aria-hidden="true"></span>
   </nav>
   <aside id="airGuidance" class="air-guidance" aria-label="AIR guidance">
     <div class="air-guidance-inner">
@@ -57,6 +58,10 @@
           <label for="description">Research workload</label>
           <textarea id="description" maxlength="5000" placeholder="Example: Run an OpenFOAM simulation on Sol with 32 GB memory..." aria-describedby="analysisStatus"></textarea>
           <button id="analyzeButton" class="primary" type="button">Analyze with AIR</button>
+          <div id="analysisProgress" class="air-progress" role="progressbar" aria-label="Estimated AIR analysis progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+            <div class="air-progress-meta"><span id="analysisProgressLabel">Preparing AIR analysis</span><span id="analysisProgressTime">0.0s elapsed</span></div>
+            <div class="air-progress-track" aria-hidden="true"><span id="analysisProgressBar"></span></div>
+          </div>
           <p id="analysisStatus" class="analysis-status" aria-live="polite">AIR analysis begins after you pause typing.</p>
           <p id="planError" class="error" role="alert"></p>
 

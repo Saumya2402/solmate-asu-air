@@ -66,6 +66,7 @@ const state = {
   generatedSpec: null,
   schedulerProfiles: [],
   schedulerUi: { glossary: {}, optionDescriptions: {} },
+  analysisDurations: [],
   localOutcomes: readOutcomeHistory(),
   latestAnalysis: null,
   apiAvailable: API_BASE_URL !== null,
@@ -78,6 +79,9 @@ let outputTransitionSequence = 0;
 let docTransitionSequence = 0;
 let activeDocAnchor = null;
 let docPreviousFocus = null;
+let analysisProgressFrame = 0;
+let analysisProgressRun = 0;
+let analysisProgressHideTimer = null;
 
 initialize();
 initializeMotionExperience();
@@ -115,6 +119,7 @@ async function switchWorkflow(button) {
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", String(active));
   });
+  moveWorkflowTabIndicator(button);
   if (current) await playMotion(current, { opacity: [1, 0], x: [0, -18] }, { duration: 0.16, ease: "easeIn" });
   if (sequence !== workflowTransitionSequence) return;
   document.querySelectorAll(".panel").forEach((panel) => {
@@ -157,6 +162,7 @@ $("#description").addEventListener("input", () => {
   }
   if (description.length < 10) {
     intakeController?.abort();
+    cancelAnalysisProgress();
     setBusy($("#analyzeButton"), false, "Analyze with AIR");
     if (!description) resetPlanningOutput();
     $("#analysisStatus").textContent = "Add a little more detail for AIR to interpret the workload.";
@@ -177,6 +183,8 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
   const controller = intakeController;
   const sequence = ++analysisSequence;
   const description = $("#description").value;
+  const progress = beginAnalysisProgress();
+  let progressOutcome = "error";
   updatePlanProgress("describe");
   setBusy($("#analyzeButton"), true, "AIR is interpreting the workflow...");
   $("#analysisStatus").textContent = "AIR is interpreting software, intent, resources, and conflicts...";
@@ -190,6 +198,7 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
     }, { signal: controller.signal });
     if (sequence !== analysisSequence) return false;
     renderIntake(payload, { scroll: !automatic });
+    progressOutcome = "complete";
     $("#analysisStatus").textContent = `Interpreted by ${payload.agent.model} in ${payload.agent.latencyMs ?? "n/a"} ms.`;
     return true;
   } catch (error) {
@@ -200,7 +209,10 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
     return false;
   } finally {
     if (intakeController === controller) intakeController = null;
-    if (sequence === analysisSequence) setBusy($("#analyzeButton"), false, "Analyze again with AIR");
+    if (sequence === analysisSequence) {
+      finishAnalysisProgress(progress, progressOutcome);
+      setBusy($("#analyzeButton"), false, "Analyze again with AIR");
+    }
   }
 }
 
@@ -941,6 +953,86 @@ function setBusy(button, busy, label) {
   button.textContent = label;
   button.setAttribute("aria-busy", String(busy));
 }
+
+function beginAnalysisProgress() {
+  const container = $("#analysisProgress");
+  const bar = $("#analysisProgressBar");
+  const label = $("#analysisProgressLabel");
+  const time = $("#analysisProgressTime");
+  const run = ++analysisProgressRun;
+  const startedAt = performance.now();
+  const estimateMs = state.analysisDurations.length
+    ? state.analysisDurations.reduce((total, duration) => total + duration, 0) / state.analysisDurations.length
+    : 12000;
+  let lastPaint = 0;
+  window.clearTimeout(analysisProgressHideTimer);
+  window.cancelAnimationFrame(analysisProgressFrame);
+  container.hidden = false;
+  container.dataset.status = "running";
+  container.setAttribute("aria-valuenow", "5");
+  bar.style.transform = "scaleX(0.05)";
+  label.textContent = "AIR is interpreting the workload";
+  time.textContent = "0.0s elapsed";
+  playMotion(container, { opacity: [0, 1], y: [-4, 0] }, { duration: 0.18, ease: "easeOut" });
+
+  const tick = (now) => {
+    if (run !== analysisProgressRun) return;
+    if (now - lastPaint >= 100) {
+      const elapsedMs = now - startedAt;
+      const progress = Math.min(0.9, 0.05 + (elapsedMs / estimateMs) * 0.8);
+      const remainingMs = Math.max(0, estimateMs - elapsedMs);
+      const progressLabel = remainingMs > 1200
+        ? `Estimated ${Math.ceil(remainingMs / 1000)}s remaining`
+        : "AIR is completing final checks";
+      bar.style.transform = `scaleX(${progress.toFixed(4)})`;
+      label.textContent = progressLabel;
+      time.textContent = `${(elapsedMs / 1000).toFixed(1)}s elapsed`;
+      container.setAttribute("aria-valuenow", String(Math.round(progress * 100)));
+      container.setAttribute("aria-valuetext", `${progressLabel}; ${time.textContent}`);
+      lastPaint = now;
+    }
+    analysisProgressFrame = requestAnimationFrame(tick);
+  };
+  analysisProgressFrame = requestAnimationFrame(tick);
+  return { run, startedAt };
+}
+
+function finishAnalysisProgress(progress, outcome) {
+  if (!progress || progress.run !== analysisProgressRun) return;
+  const container = $("#analysisProgress");
+  const bar = $("#analysisProgressBar");
+  const label = $("#analysisProgressLabel");
+  const time = $("#analysisProgressTime");
+  const elapsedMs = Math.max(0, performance.now() - progress.startedAt);
+  window.cancelAnimationFrame(analysisProgressFrame);
+  container.dataset.status = outcome;
+  time.textContent = `${(elapsedMs / 1000).toFixed(1)}s elapsed`;
+  if (outcome === "complete") {
+    state.analysisDurations.push(elapsedMs);
+    state.analysisDurations = state.analysisDurations.slice(-5);
+    label.textContent = "AIR analysis complete";
+    container.setAttribute("aria-valuenow", "100");
+    container.setAttribute("aria-valuetext", `AIR analysis complete; ${time.textContent}`);
+    if (reducedMotion) bar.style.transform = "scaleX(1)";
+    else playMotion(bar, { scaleX: 1 }, springTransition({ stiffness: 320, damping: 30 }));
+  } else {
+    label.textContent = "AIR analysis stopped";
+    container.setAttribute("aria-valuetext", `AIR analysis stopped; ${time.textContent}`);
+  }
+  const run = progress.run;
+  analysisProgressHideTimer = window.setTimeout(async () => {
+    if (run !== analysisProgressRun) return;
+    await playMotion(container, { opacity: [1, 0], y: [0, -4] }, { duration: 0.16, ease: "easeIn" });
+    if (run === analysisProgressRun) container.hidden = true;
+  }, outcome === "complete" ? 1500 : 2400);
+}
+
+function cancelAnalysisProgress() {
+  analysisProgressRun += 1;
+  window.cancelAnimationFrame(analysisProgressFrame);
+  window.clearTimeout(analysisProgressHideTimer);
+  $("#analysisProgress").hidden = true;
+}
 function formatValue(value) { return Array.isArray(value) ? (value.length ? value.join(", ") : "none") : String(value); }
 function recommendationKey(value) { return JSON.stringify(value); }
 function hasFormValue(input) { return input && String(input.value).trim() !== ""; }
@@ -1013,6 +1105,7 @@ function showToast(message) {
 function initializeMotionExperience() {
   document.documentElement.classList.add("motion-ready");
   window.lucide?.createIcons?.({ attrs: { "aria-hidden": "true" } });
+  setupWorkflowTabIndicator();
   setupDocPreviews();
   setupQuickActions();
   setupAirGuidance();
@@ -1044,6 +1137,35 @@ function initializeMotionExperience() {
     if (!event.target.matches("input, select, textarea")) return;
     playMotion(event.target, { scale: [0.985, 1] }, springTransition({ stiffness: 500, damping: 28 }));
   });
+}
+
+function setupWorkflowTabIndicator() {
+  const tabs = document.querySelector(".tabs");
+  const active = tabs?.querySelector(".tab.active");
+  if (!tabs || !active || !$("#workflowTabIndicator")) return;
+  requestAnimationFrame(() => moveWorkflowTabIndicator(active, true));
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(() => {
+      const selected = tabs.querySelector(".tab.active");
+      if (selected) moveWorkflowTabIndicator(selected, true);
+    });
+    observer.observe(tabs);
+  }
+}
+
+function moveWorkflowTabIndicator(tab, immediate = false) {
+  const indicator = $("#workflowTabIndicator");
+  const tabs = tab?.closest(".tabs");
+  if (!indicator || !tabs) return;
+  const tabRect = tab.getBoundingClientRect();
+  const tabsRect = tabs.getBoundingClientRect();
+  const x = tabRect.left - tabsRect.left;
+  if (immediate || reducedMotion || typeof motion.animate !== "function") {
+    indicator.style.width = `${tabRect.width}px`;
+    indicator.style.transform = `translateX(${x}px)`;
+    return;
+  }
+  playMotion(indicator, { x, width: tabRect.width }, springTransition({ stiffness: 430, damping: 34 }));
 }
 
 function setupScrollMotion() {

@@ -163,3 +163,17 @@ test("UI provides continuous, pausable AIR guidance linked to ASU RC documentati
   assert.match(app, /https:\/\/docs\.rc\.asu\.edu\/partitions-and-qos\//);
   assert.match(css, /\.typewriter-caret/);
 });
+
+test("UI shows honest time-aware AIR progress and a shared animated workflow indicator", () => {
+  for (const id of ["analysisProgress", "analysisProgressLabel", "analysisProgressTime", "analysisProgressBar", "workflowTabIndicator"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /aria-label="Estimated AIR analysis progress"/);
+  assert.match(app, /function beginAnalysisProgress/);
+  assert.match(app, /Estimated \$\{Math\.ceil\(remainingMs \/ 1000\)\}s remaining/);
+  assert.match(app, /state\.analysisDurations = state\.analysisDurations\.slice\(-5\)/);
+  assert.match(app, /function cancelAnalysisProgress/);
+  assert.match(app, /function moveWorkflowTabIndicator/);
+  assert.match(app, /new ResizeObserver/);
+  assert.match(css, /\.tab-indicator/);
+});
