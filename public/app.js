@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const OUTCOME_STORAGE_KEY = "solmate.outcomes.v1";
+const API_BASE_URL = resolveApiBaseUrl(window.SOLMATE_CONFIG?.apiBaseUrl);
 const state = {
   recommendations: new Map(),
   confirmedRecommendations: new Map(),
@@ -15,6 +16,7 @@ const state = {
   schedulerUi: { glossary: {}, optionDescriptions: {} },
   localOutcomes: readOutcomeHistory(),
   latestAnalysis: null,
+  apiAvailable: API_BASE_URL !== null,
 };
 let analysisTimer = null;
 let analysisSequence = 0;
@@ -33,8 +35,13 @@ async function initialize() {
     $("#modeStatus").dataset.mode = health.mode;
     $("#modeLabel").textContent = health.mode === "mock" ? "MOCK | LOCAL FIXTURES" : `LIVE AIR | ${health.models.planner}`;
     $("#mockModeNotice").hidden = health.mode !== "mock";
-  } catch {
-    $("#modeLabel").textContent = "Service unavailable";
+    setApiAvailability(true);
+  } catch (error) {
+    $("#modeStatus").dataset.mode = "offline";
+    $("#modeLabel").textContent = "AIR OFFLINE";
+    $("#serviceNotice").hidden = false;
+    $("#serviceNotice span").textContent = error.message;
+    setApiAvailability(false);
   }
 }
 
@@ -45,6 +52,7 @@ document.querySelectorAll(".tab").forEach((button) => button.addEventListener("c
     tab.setAttribute("aria-selected", String(active));
   });
   document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${button.dataset.tab}Panel`));
+  document.querySelectorAll(".panel").forEach((panel) => { panel.hidden = panel.id !== `${button.dataset.tab}Panel`; });
 }));
 
 document.querySelectorAll(".output-tab").forEach((button) => button.addEventListener("click", () => activateOutputTab(button.dataset.outputTab)));
@@ -66,6 +74,10 @@ $("#description").addEventListener("input", () => {
   window.clearTimeout(analysisTimer);
   analysisSequence += 1;
   const description = $("#description").value.trim();
+  if (!state.apiAvailable) {
+    $("#analysisStatus").textContent = "Connect the server-side AIR API to analyze this workload.";
+    return;
+  }
   if (description.length < 10) {
     intakeController?.abort();
     setBusy($("#analyzeButton"), false, "Analyze with AIR");
@@ -81,12 +93,14 @@ $("#description").addEventListener("input", () => {
 $("#analyzeButton").addEventListener("click", () => runIntake({ automatic: false }));
 
 async function runIntake({ automatic, preserveRecommendations = false }) {
+  if (!state.apiAvailable) return false;
   window.clearTimeout(analysisTimer);
   intakeController?.abort();
   intakeController = new AbortController();
   const controller = intakeController;
   const sequence = ++analysisSequence;
   const description = $("#description").value;
+  updatePlanProgress("describe");
   setBusy($("#analyzeButton"), true, "AIR is interpreting the workflow...");
   $("#analysisStatus").textContent = "AIR is interpreting software, intent, resources, and conflicts...";
   $("#planError").textContent = "";
@@ -115,6 +129,7 @@ async function runIntake({ automatic, preserveRecommendations = false }) {
 
 function renderIntake(payload, { scroll = false } = {}) {
   const form = $("#specForm");
+  updatePlanProgress("confirm");
   restoreSuggestionControls();
   form.reset();
   form.hidden = false;
@@ -338,6 +353,7 @@ function resetPlanningOutput() {
   state.latestAnalysis = null;
   $("#useGeneratedEvidenceButton").disabled = true;
   $("#planError").textContent = "";
+  updatePlanProgress("describe");
 }
 
 function markPlanningPending() {
@@ -352,6 +368,7 @@ function markPlanningPending() {
   $("#planError").textContent = "";
   $("#generationStatus").textContent = "";
   $("#generationError").textContent = "";
+  updatePlanProgress("describe");
   if (!$("#specForm").hidden) {
     $("#missingFields").textContent = "Changes are awaiting AIR verification; the last good values remain visible.";
   }
@@ -480,6 +497,7 @@ function renderGenerated(payload) {
   $("#results").hidden = false;
   state.script = payload.script;
   state.generatedSpec = payload.spec;
+  updatePlanProgress("review");
   showAcceptedSuggestions(payload.spec);
   $("#useGeneratedEvidenceButton").disabled = false;
   state.filename = `${payload.spec.jobName}.slurm`;
@@ -537,6 +555,7 @@ function invalidateGeneratedResult() {
   restoreSuggestionControls();
   $("#confirmAllSuggestions").hidden = state.recommendations.size === 0;
   $("#recommendationReview").hidden = true;
+  updatePlanProgress("confirm");
 }
 
 function renderExplanations(explanations, agent) {
@@ -813,7 +832,9 @@ function renderDiagnosis(payload) {
 }
 
 async function api(url, body, { signal } = {}) {
-  const response = await fetch(url, body === undefined ? { signal } : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
+  if (API_BASE_URL === null) throw new Error("Connect the deployed interface to a server-side AIR API before running analysis.");
+  const endpoint = `${API_BASE_URL}${url}`;
+  const response = await fetch(endpoint, body === undefined ? { signal } : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json") ? await response.json() : { error: `Service returned HTTP ${response.status}.` };
   if (!response.ok) {
@@ -830,7 +851,11 @@ function renderOptionalList(container, items) {
   renderList(container, items);
   container.closest(".evidence-block").hidden = items.length === 0;
 }
-function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
+function setBusy(button, busy, label) {
+  button.disabled = busy;
+  button.textContent = label;
+  button.setAttribute("aria-busy", String(busy));
+}
 function formatValue(value) { return Array.isArray(value) ? (value.length ? value.join(", ") : "none") : String(value); }
 function recommendationKey(value) { return JSON.stringify(value); }
 function hasFormValue(input) { return input && String(input.value).trim() !== ""; }
@@ -842,4 +867,54 @@ function inputMatchesRecommendation(input, recommendation) {
   }
   return String(input.value) === String(recommendation);
 }
-async function copyText(text, button) { await navigator.clipboard.writeText(text); const old = button.textContent; button.textContent = "Copied"; setTimeout(() => { button.textContent = old; }, 1000); }
+async function copyText(text, button) {
+  await navigator.clipboard.writeText(text);
+  const old = button.textContent;
+  button.textContent = "Copied";
+  showToast("Copied to clipboard");
+  setTimeout(() => { button.textContent = old; }, 1000);
+}
+
+function resolveApiBaseUrl(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (!value) return window.location.hostname.endsWith("github.io") ? null : "";
+  try {
+    const url = new URL(value);
+    const localHttp = url.protocol === "http:" && new Set(["localhost", "127.0.0.1"]).has(url.hostname);
+    if (url.protocol !== "https:" && !localHttp) return null;
+    return url.href.replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function setApiAvailability(available) {
+  state.apiAvailable = available;
+  const controls = ["#analyzeButton", "#answerQuestionButton", "#generateButton", "#buildEvidenceButton", "#loadDiagnosisDemoButton", "#diagnoseButton", "#handoffForm button[type=submit]"];
+  for (const selector of controls) {
+    const control = $(selector);
+    if (control) control.disabled = !available;
+  }
+  if (available) $("#serviceNotice").hidden = true;
+}
+
+function updatePlanProgress(stage) {
+  const order = ["describe", "confirm", "review"];
+  const activeIndex = order.indexOf(stage);
+  document.querySelectorAll("#planProgress [data-progress]").forEach((item) => {
+    const index = order.indexOf(item.dataset.progress);
+    item.classList.toggle("current", index === activeIndex);
+    item.classList.toggle("complete", index < activeIndex);
+    if (index === activeIndex) item.setAttribute("aria-current", "step");
+    else item.removeAttribute("aria-current");
+  });
+}
+
+let toastTimer = null;
+function showToast(message) {
+  const toast = $("#toast");
+  toast.textContent = message;
+  toast.hidden = false;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => { toast.hidden = true; }, 1800);
+}

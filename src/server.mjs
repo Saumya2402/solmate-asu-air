@@ -17,7 +17,7 @@ import { buildDocumentedDiagnosisDemo } from "./diagnosis_demo.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(currentDir, "../public");
-export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OPENAI_API_KEY ? "live" : "mock"), gateway } = {}) {
+export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OPENAI_API_KEY ? "live" : "mock"), gateway, allowedOrigins = parseAllowedOrigins(process.env.AIR_ALLOWED_ORIGINS) } = {}) {
   if (!new Set(["mock", "live"]).has(mode)) throw new Error("AIR_MODE must be mock or live.");
   const selectedGateway = gateway || (mode === "live" ? new AirClient({
     timeoutMs: Number(process.env.AIR_TIMEOUT_MS || 45_000),
@@ -30,6 +30,13 @@ export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OP
     setSecurityHeaders(response);
     try {
       const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+      const corsAllowed = applyCorsHeaders(request, response, allowedOrigins);
+      if (request.method === "OPTIONS") {
+        if (!url.pathname.startsWith("/api/")) return sendJson(response, 405, { error: "Method not allowed." });
+        if (!corsAllowed) return sendJson(response, 403, { error: "Origin is not allowed." });
+        response.writeHead(204);
+        return response.end();
+      }
       if (request.method === "GET" && url.pathname === "/api/health") {
         const schedulerOptions = knowledge.profiles.map(({ id, cluster, partition, qos, requiresAccount = false, notes = null, source }) => ({ id, cluster, partition, qos, requiresAccount, notes, source }));
         return sendJson(response, 200, { ok: true, mode, models: harness.models, rulesVersion: knowledge.version, schedulerOptions, schedulerUi: schedulerUiKnowledge() });
@@ -128,6 +135,27 @@ function setSecurityHeaders(response) {
   response.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'");
 }
 
+function applyCorsHeaders(request, response, allowedOrigins) {
+  const origin = request.headers.origin;
+  if (!origin || !allowedOrigins.has(origin)) return false;
+  response.setHeader("Access-Control-Allow-Origin", origin);
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  response.setHeader("Vary", "Origin");
+  return true;
+}
+
+function parseAllowedOrigins(value) {
+  const origins = String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  return new Set(origins.map((item) => {
+    const url = new URL(item);
+    const localHttp = url.protocol === "http:" && new Set(["localhost", "127.0.0.1"]).has(url.hostname);
+    if (url.protocol !== "https:" && !localHttp) throw new Error("AIR_ALLOWED_ORIGINS must contain HTTPS origins or local development origins.");
+    if (url.origin !== item.replace(/\/$/, "")) throw new Error("AIR_ALLOWED_ORIGINS entries must be origins without paths.");
+    return url.origin;
+  }));
+}
+
 function sendJson(response, status, payload) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   response.end(JSON.stringify(payload));
@@ -161,8 +189,9 @@ function pickMetadata(metadata) {
 const isMain = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 if (isMain) {
   const port = Number(process.env.PORT || 4173);
+  const host = process.env.HOST || "127.0.0.1";
   const { server, mode } = createAppServer();
-  server.listen(port, "127.0.0.1", () => {
-    console.log(`SolMate running at http://127.0.0.1:${port} (${mode} mode)`);
+  server.listen(port, host, () => {
+    console.log(`SolMate running at http://${host}:${port} (${mode} mode)`);
   });
 }

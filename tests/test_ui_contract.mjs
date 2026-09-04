@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const app = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+const config = await readFile(new URL("../public/config.js", import.meta.url), "utf8");
 
 test("UI invalidates recommendation confirmation after edits and sends signed token", () => {
   assert.match(app, /checkbox\.checked = false/);
@@ -92,4 +93,21 @@ test("partition and QoS are dependent scheduler-profile selects", () => {
   assert.match(app, /account\.required = selectedProfile\?\.requiresAccount/);
   assert.match(app, /priorRecommendationToken: preserveRecommendations \? state\.recommendationToken : null/);
   assert.match(app, /preserveRecommendations: true/);
+});
+
+test("static interface supports a separate AIR API without embedding credentials", () => {
+  assert.match(html, /src="\.\/config\.js"/);
+  assert.match(html, /src="\.\/app\.js"/);
+  assert.match(html, /href="\.\/styles\.css"/);
+  assert.match(app, /SOLMATE_CONFIG\?\.apiBaseUrl/);
+  assert.match(app, /AIR service not connected|AIR OFFLINE/);
+  assert.match(config, /apiBaseUrl: ""/);
+  assert.doesNotMatch(config, /sk-[A-Za-z0-9]/);
+});
+
+test("UI exposes workflow progress, busy state, and accessible tab panels", () => {
+  assert.match(html, /id="planProgress"/);
+  assert.match(html, /role="tabpanel"/);
+  assert.match(app, /updatePlanProgress\("review"\)/);
+  assert.match(app, /setAttribute\("aria-busy", String\(busy\)\)/);
 });

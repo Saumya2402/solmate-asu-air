@@ -46,6 +46,25 @@ npm run start:mock
 
 Open http://127.0.0.1:4173.
 
+## GitHub Pages deployment
+
+GitHub Pages hosts the static browser interface only. The AIR credential and all model calls remain in the Node server; a credential must never be added to `public/config.js`, a repository variable, or browser code.
+
+The workflow in `.github/workflows/deploy-pages.yml` deploys `continued-development`. Configure the repository Pages source as **GitHub Actions**, then add this non-secret repository variable:
+
+~~~text
+SOLMATE_API_BASE_URL=https://your-server-side-solmate-api.example.edu
+~~~
+
+On that API host, set `AIR_ALLOWED_ORIGINS` to the exact Pages origin, for example `https://saumya2402.github.io`, and set `HOST=0.0.0.0` when the hosting platform requires it. The API URL must use HTTPS. Without an API URL, Pages intentionally displays the interface in a disconnected state and disables AIR actions instead of pretending to run them.
+
+Build the same static artifact locally with:
+
+~~~powershell
+$env:SOLMATE_API_BASE_URL = "https://your-server-side-solmate-api.example.edu"
+npm run build:pages
+~~~
+
 For live AIR, load an active AIR API key into the current terminal without committing it:
 
 ~~~powershell
@@ -135,4 +154,4 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 
 ## Validation snapshot
 
-On 2026-09-03, the local suite passed 124/124 tests, including the documented Python command-not-found demo, readiness-state consistency, optional command fields, scheduler-rationale grounding, documentation retrieval, feedback sanitization, contextual tool guidance, UI contracts, fixture generation, security boundaries, failure-evidence commands, triggered-rule validation, and inconclusive fallbacks. A 24-case mock diagnosis matrix passed 24/24 and is recorded without raw logs in `results/results_diagnosis_mock_acceptance_20260903.json`. JavaScript syntax checks, the deterministic mock demo, and `git diff --check` also passed. Live AIR previously recovered every supplied synthetic intake field, converted `2 hours` to `02:00:00`, accepted one sanitized outcome, and returned four relevant ASU RC Docs sources. Live generation passed deterministic validation, rendered an 18-line script, returned 15 exact-line explanations and six contextual ASU tools, and appropriately retained a review warning for an unverified GPU environment. Live failure diagnosis matched `COMMAND_NOT_FOUND_OR_MODULE` with exact evidence in 3196 ms. Sanitized evidence is recorded in `results/results_asu_docs_live_acceptance_20260903.json`. The expanded 24-case diagnosis matrix still requires a fresh live-server run. Browser breakpoint QA and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.
+On 2026-09-03, the local suite passed 127/127 tests, including the documented Python command-not-found demo, readiness-state consistency, optional command fields, scheduler-rationale grounding, documentation retrieval, feedback sanitization, contextual tool guidance, Pages API separation, exact-origin CORS, UI contracts, fixture generation, security boundaries, failure-evidence commands, triggered-rule validation, and inconclusive fallbacks. A 24-case mock diagnosis matrix passed 24/24 and is recorded without raw logs in `results/results_diagnosis_mock_acceptance_20260903.json`. JavaScript syntax checks, the deterministic mock demo, the Pages build, HTTP asset checks, and `git diff --check` also passed. Live AIR previously recovered every supplied synthetic intake field, converted `2 hours` to `02:00:00`, accepted one sanitized outcome, and returned four relevant ASU RC Docs sources. Live generation passed deterministic validation, rendered an 18-line script, returned 15 exact-line explanations and six contextual ASU tools, and appropriately retained a review warning for an unverified GPU environment. Live failure diagnosis matched `COMMAND_NOT_FOUND_OR_MODULE` with exact evidence in 3196 ms. Sanitized evidence is recorded in `results/results_asu_docs_live_acceptance_20260903.json`. The expanded 24-case diagnosis matrix still requires a fresh live-server run. Browser breakpoint QA and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.

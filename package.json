@@ -8,6 +8,7 @@
     "start": "node src/server.mjs",
     "start:mock": "node scripts/start_server.mjs mock",
     "start:live": "node scripts/start_server.mjs live",
+    "build:pages": "node scripts/build_pages.mjs",
     "preflight:live": "node scripts/air_preflight.mjs",
     "benchmark:models": "node scripts/model_benchmark.mjs",
     "benchmark:roles": "node scripts/role_model_benchmark.mjs",

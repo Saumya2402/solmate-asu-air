@@ -114,3 +114,22 @@ test("HTTP API classifies malformed AIR output as an upstream failure", async (c
   assert.equal(response.status, 502);
   assert.equal((await response.json()).code, "AIR_UPSTREAM_RESPONSE");
 });
+
+test("HTTP API allows only explicitly configured browser origins", async (context) => {
+  const allowedOrigin = "https://saumya2402.github.io";
+  const { server } = createAppServer({ mode: "mock", gateway: new MockGateway(), allowedOrigins: new Set([allowedOrigin]) });
+  server.listen(0, "127.0.0.1"); await once(server, "listening"); context.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  const preflight = await fetch(`${base}/api/health`, { method: "OPTIONS", headers: { Origin: allowedOrigin, "Access-Control-Request-Method": "GET" } });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), allowedOrigin);
+
+  const allowed = await fetch(`${base}/api/health`, { headers: { Origin: allowedOrigin } });
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.headers.get("access-control-allow-origin"), allowedOrigin);
+
+  const rejected = await fetch(`${base}/api/health`, { method: "OPTIONS", headers: { Origin: "https://example.com", "Access-Control-Request-Method": "GET" } });
+  assert.equal(rejected.status, 403);
+  assert.equal(rejected.headers.get("access-control-allow-origin"), null);
+});

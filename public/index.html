@@ -3,28 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AIR-assisted Slurm planning and failure diagnosis for ASU Research Computing.">
   <title>SolMate | ASU Compute Concierge</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
   <header class="app-header">
     <div class="brand">
-      <span class="brand-mark">S</span>
-      <div><p class="eyebrow">ASU AIR</p><h1>SolMate</h1><p class="subtitle">Compute Concierge</p></div>
+      <span class="brand-mark" aria-hidden="true">SM</span>
+      <div><p class="eyebrow">ASU AIR</p><h1>SolMate</h1><p class="subtitle">Research Computing Assistant</p></div>
     </div>
-    <div id="modeStatus" class="status" data-mode="connecting"><span class="status-dot"></span><span id="modeLabel">Connecting</span></div>
+    <div class="header-actions">
+      <a class="docs-link" href="https://docs.rc.asu.edu/" target="_blank" rel="noreferrer">ASU RC Docs</a>
+      <div id="modeStatus" class="status" data-mode="connecting" role="status"><span class="status-dot"></span><span id="modeLabel">Connecting</span></div>
+    </div>
   </header>
 
-  <nav class="tabs" aria-label="Workflows">
-    <button class="tab active" type="button" data-tab="plan" aria-selected="true">Plan a job</button>
-    <button class="tab" type="button" data-tab="diagnose" aria-selected="false">Diagnose a failure</button>
+  <nav class="tabs" aria-label="Workflows" role="tablist">
+    <button id="planTab" class="tab active" type="button" role="tab" data-tab="plan" aria-controls="planPanel" aria-selected="true"><span aria-hidden="true">01</span>Plan a job</button>
+    <button id="diagnoseTab" class="tab" type="button" role="tab" data-tab="diagnose" aria-controls="diagnosePanel" aria-selected="false"><span aria-hidden="true">02</span>Diagnose a failure</button>
   </nav>
+  <div id="serviceNotice" class="service-notice" role="alert" hidden>
+    <strong>AIR service not connected</strong>
+    <span>The interface is available, but analysis requires the separately hosted SolMate API.</span>
+  </div>
 
-  <main>
-    <section id="planPanel" class="panel active">
+  <main id="workspace">
+    <section id="planPanel" class="panel active" role="tabpanel" aria-labelledby="planTab">
       <div class="work-grid">
         <section class="column">
           <div class="section-title"><span>01</span><div><h2>Describe the workload</h2><p>AIR interprets the workflow as you pause, then identifies conflicts and missing decisions.</p></div></div>
+          <ol id="planProgress" class="progress-track" aria-label="Job planning progress">
+            <li class="current" data-progress="describe"><span>1</span>Describe</li>
+            <li data-progress="confirm"><span>2</span>Confirm</li>
+            <li data-progress="review"><span>3</span>Review</li>
+          </ol>
           <p id="mockModeNotice" class="mode-notice" hidden><strong>Demo mode:</strong> responses are local fixtures; AIR is not being called.</p>
           <label for="description">Research workload</label>
           <textarea id="description" maxlength="5000" placeholder="Example: Run an OpenFOAM simulation on Sol with 32 GB memory..." aria-describedby="analysisStatus"></textarea>
@@ -143,10 +157,11 @@
       </div>
     </section>
 
-    <section id="diagnosePanel" class="panel">
+    <section id="diagnosePanel" class="panel" role="tabpanel" aria-labelledby="diagnoseTab" hidden>
       <div class="work-grid">
         <form id="diagnosisForm" class="column">
           <div class="section-title"><span>01</span><div><h2>Supply failure evidence</h2><p>Exact lines and metadata keep the diagnosis auditable.</p></div></div>
+          <div class="evidence-strip" aria-label="Diagnosis process"><span>Evidence</span><span>Deterministic checks</span><span>AIR finding</span></div>
           <label>Cluster<select name="cluster"><option value="sol">Sol</option><option value="phoenix">Phoenix</option><option value="unknown">Unknown</option></select></label>
           <details class="compact-details evidence-helper">
             <summary>Collect evidence from Sol or Phoenix</summary>
@@ -202,7 +217,9 @@
       </div>
     </section>
   </main>
-  <footer>Proposed scripts require human review. SolMate never submits jobs or stores cluster credentials.</footer>
-  <script type="module" src="/app.js"></script>
+  <footer><strong>Human review required.</strong> SolMate never submits jobs or stores cluster credentials.</footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="./config.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

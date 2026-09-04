@@ -4,6 +4,7 @@ node_modules/
 !.env.example
 chatLanguageModels.json
 coverage/
+dist/
 tmp/
 SolMate_Teammate_Handoff_*/
 SolMate_Teammate_Handoff_*.zip

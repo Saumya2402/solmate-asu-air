@@ -1,0 +1,26 @@
+import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const source = path.join(root, "public");
+const output = path.join(root, "dist");
+const apiBaseUrl = validateApiBaseUrl(process.env.SOLMATE_API_BASE_URL);
+
+await rm(output, { recursive: true, force: true });
+await mkdir(output, { recursive: true });
+await cp(source, output, { recursive: true });
+await writeFile(path.join(output, "config.js"), `window.SOLMATE_CONFIG = Object.freeze(${JSON.stringify({ apiBaseUrl }, null, 2)});\n`, "utf8");
+await writeFile(path.join(output, ".nojekyll"), "", "utf8");
+
+console.log(`GitHub Pages bundle created in ${output}.`);
+console.log(apiBaseUrl ? `AIR API endpoint: ${apiBaseUrl}` : "AIR API endpoint: not configured (interface-only deployment).");
+
+function validateApiBaseUrl(value) {
+  const candidate = String(value || "").trim().replace(/\/$/, "");
+  if (!candidate) return "";
+  const url = new URL(candidate);
+  if (url.protocol !== "https:") throw new Error("SOLMATE_API_BASE_URL must use HTTPS for a deployed Pages build.");
+  if (url.origin + url.pathname.replace(/\/$/, "") !== candidate) throw new Error("SOLMATE_API_BASE_URL must not include query parameters or fragments.");
+  return candidate;
+}
