@@ -1,6 +1,6 @@
 import { applyRepairPatch, extractJsonObject, isExactRenderedScript, renderSlurmScript, validateJobSpec, walltimeHours } from "./job_spec.mjs";
 import { extractExplicitJobName, extractExplicitWalltime, extractOpenFoamSolver, missingFields, normalizeAirFacts, normalizeExplicitFacts, normalizeIntakeAnalysis, validateCorrections, validateIntakeAnalysis } from "./intake.mjs";
-import { diagnosisFromDeterministicFindings, deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
+import { diagnosisDisposition, diagnosisFromDeterministicFindings, deterministicFindings, normalizeLog, redactRecord, redactSensitive, validateDiagnosis } from "./diagnosis.mjs";
 import { retrieveDocumentation, schedulerProfileFor } from "./knowledge.mjs";
 import { beginnerWarnings, buildReadinessChecks, buildToolGuidance, deterministicScriptExplanations, firstRunPlan, resourceMetrics, validateScriptExplanations } from "./newcomer_guidance.mjs";
 import { configuredRoleModel } from "./model_router.mjs";
@@ -43,7 +43,7 @@ const PROFILING_PROFILES = Object.freeze({
   openfoam_medium: { cpus: 8, gpus: 0, memoryGb: 16, walltime: "01:00:00" },
   openfoam_large: { cpus: 16, gpus: 0, memoryGb: 32, walltime: "01:00:00" },
 });
-export const DIAGNOSIS_SYSTEM = `You are an ASU AIR Slurm diagnostician. Return one JSON object only with category, confidence (confirmed, probable, or inconclusive), ruleId, evidence (array using exact 1-based log lineNumber and text, or source metadata with field and text), explanation, alternatives (string array), missingEvidence (string array), recommendations (string array), and patch (object or null). Cite only supplied evidence and applicable rule IDs. Use category UNKNOWN and ruleId null when no supplied rule is supported. A rule marked requiresCorroboration cannot be confirmed unless the supplied deterministic finding is confirmed. Invalid feature specification is ambiguous. Never claim exit code alone proves root cause.`;
+export const DIAGNOSIS_SYSTEM = `You are an ASU AIR Slurm diagnostician. Return one JSON object only with category, confidence (confirmed, probable, or inconclusive), ruleId, evidence (array using exact 1-based log lineNumber and text, or source metadata with field and text), explanation, alternatives (string array), missingEvidence (string array), recommendations (string array), and patch (object or null). Cite only supplied evidence. Cite a ruleId only when that exact ID appears in deterministicFindings; otherwise use ruleId null and remain probable or inconclusive. Use category UNKNOWN when the evidence cannot support a narrower cause. A rule marked requiresCorroboration cannot be confirmed unless its deterministic finding is confirmed. Invalid feature specification is ambiguous. Never claim exit code alone proves root cause. Distinguish queued or running work from terminal failures. Give bounded evidence-collection steps before recommending resource or script changes.`;
 const RESOURCE_RECOMMENDATION_FIELDS = new Set(["cpus", "gpus", "memoryGb", "walltime", "nodes", "tasks", "epochs"]);
 const JSON_REPAIR_SYSTEM = "Return only a valid JSON object preserving the supplied meaning. Do not add facts.";
 
@@ -236,16 +236,18 @@ export class AgentHarness {
       response = await this.gateway.chat({ model: this.models.diagnostician, temperature: 0, maxTokens: 700, messages: [{ role: "system", content: DIAGNOSIS_SYSTEM }, { role: "user", content: JSON.stringify({ cluster, script: redactedScript.text, log: redactedLog.text, metadata: redactedMetadata.value, deterministicFindings: findings, rules: applicable, asuRcDocumentation: documentationContext }) }] });
       diagnosis = validateDiagnosis(await this.#parse(response, "diagnostician"), { log: redactedLog.text, metadata: redactedMetadata.value, allowedRuleIds: applicable.map((rule) => rule.id), rules: applicable, deterministicFindings: findings });
     } catch (error) {
-      diagnosis = diagnosisFromDeterministicFindings(findings);
-      if (!diagnosis) throw error;
+      diagnosis = diagnosisFromDeterministicFindings(findings, { log: redactedLog.text, metadata: redactedMetadata.value });
       diagnosisValidation = { airAccepted: false, fallback: "deterministic", reason: "AIR output did not pass deterministic diagnosis validation." };
     }
     let repair = null;
-    if (originalSpec && diagnosis.confidence === "confirmed" && !["PENDING_NOT_FAILED", "INFRASTRUCTURE_OR_ADMIN"].includes(diagnosis.category) && diagnosis.patch && isExactRenderedScript(originalSpec, script)) {
+    const repairableCategories = new Set(["OUT_OF_MEMORY", "TIMEOUT", "COMMAND_NOT_FOUND_OR_MODULE", "APPLICATION_DEPENDENCY"]);
+    if (originalSpec && diagnosis.confidence === "confirmed" && repairableCategories.has(diagnosis.category) && diagnosis.patch && isExactRenderedScript(originalSpec, script)) {
       try { repair = applyRepairPatch(originalSpec, diagnosis.patch); } catch { repair = null; }
     }
     const agent = response ? agentMetadata("diagnostician", response) : { role: "diagnostician", model: this.models.diagnostician, latencyMs: null, usage: null };
-    return { diagnosis, diagnosisValidation, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: applicable.map(({ id, category, source }) => ({ id, category, source })), knowledgeSources: documentationContext, agent };
+    const surfacedRuleIds = new Set([diagnosis.ruleId, ...findings.map((finding) => finding.ruleId)].filter(Boolean));
+    const surfacedRules = applicable.filter((rule) => surfacedRuleIds.has(rule.id)).map(({ id, category, source }) => ({ id, category, source }));
+    return { diagnosis, disposition: diagnosisDisposition(diagnosis), diagnosisValidation, deterministicFindings: findings, repair, redactions: redactedLog.redactionCount + redactedScript.redactionCount + redactedMetadata.redactionCount, applicableRules: surfacedRules, knowledgeSources: documentationContext, agent };
   }
 
   async #parse(response, role, signal) {

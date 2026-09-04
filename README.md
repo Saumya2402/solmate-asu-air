@@ -22,7 +22,7 @@ Browser
      -> AIR critic -> validated review object
      -> AIR Slurm explainer -> exact-line teaching notes
      -> deterministic Sol command templates
-     -> AIR diagnostician -> exact evidence validation
+     -> deterministic failure signals + AIR diagnostician -> exact evidence validation and triage disposition
      -> browser-local job outcomes -> advisory context for later AIR planning
 ~~~
 
@@ -85,7 +85,8 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 - POST /api/intake: evidence-backed AIR interpretation, retrieved ASU RC documentation, bounded local outcome context, prioritized scientific follow-up, independently reviewed recommendations, conflict detection, and missing fields.
 - POST /api/generate: deterministic validation, script rendering, and AIR critique.
 - POST /api/handoff: deterministic Sol upload/test/submit command steps.
-- POST /api/diagnose: AIR diagnosis with exact log/metadata evidence checks.
+- POST /api/failure-evidence: validated, non-executing evidence commands for submission, pending, running, and finished jobs.
+- POST /api/diagnose: AIR diagnosis with exact log/metadata evidence checks, triggered-rule validation, and a researcher/monitor/support disposition.
 
 ## Safety boundaries
 
@@ -108,6 +109,9 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 - The final submit command remains hidden until the user acknowledges the syntax and Slurm test-only checks.
 - That acknowledgement is signed by the local server and bound to the exact handoff values that were reviewed.
 - Diagnosis logs, scripts, metadata, and deterministic evidence are redacted as one outbound AIR payload.
+- A job ID entered in the evidence helper is used only by the local command builder. It is not stored or included in the AIR diagnosis request.
+- A diagnosis may cite a documentation rule only when its deterministic trigger is present. Unsupported evidence returns an inconclusive result instead of inventing a cause.
+- Automatic repairs are limited to exact app-rendered scripts and confirmed memory, time, command-environment, or dependency findings.
 - Credentials, Duo responses, SSH keys, and raw upstream error bodies are never collected.
 
 ## Newcomer workflow
@@ -119,10 +123,12 @@ Run `npm run benchmark:role-suite` for the rapid nine-role AIR screening matrix.
 - AIR explanations must quote every meaningful generated script line exactly or the app falls back to deterministic explanations.
 - Deterministic environment checks cover the working directory, executable, modules, input script, and OpenFOAM decomposition where applicable.
 - Contextual ASU tools include `myjobs`, `seff`, `myaccounts`, `myquota`, module discovery, and mamba-first Python environment guidance with direct ASU RC Docs links.
+- The failure tab builds one-line evidence commands by job stage: `myjobs` and `thisjob` for active work, then `seff` and a bounded `sacct` report after the job finishes.
+- Script-format, account/QoS, memory, timeout, dependency, permission, storage, signal, pending, running, completed, and infrastructure outcomes have documented deterministic checks; AIR handles explanation and narrower application context within those evidence boundaries.
 - Scheduler controls use `Hardware queue (partition)` and `Run policy (QoS)` labels, plus concise descriptions of each available option.
 - The Run tab covers upload/login, test-only validation, submission acknowledgement, monitoring, inspection, cancellation, accounting evidence, and efficiency review.
 - The Run tab can record whether the job succeeded, failed at submission/runtime, or used unsuitable resources; only the sanitized outcome profile remains in browser storage.
 
 ## Validation snapshot
 
-On 2026-09-03, the local suite passed 108/108 tests, including documentation retrieval, feedback sanitization, contextual tool guidance, UI contracts, fixture generation, and security boundaries. JavaScript syntax checks and `git diff --check` also passed. Live AIR recovered every supplied synthetic intake field, converted `2 hours` to `02:00:00`, accepted one sanitized outcome, and returned four relevant ASU RC Docs sources. Live generation passed deterministic validation, rendered an 18-line script, returned 15 exact-line explanations and six contextual ASU tools, and appropriately retained a review warning for an unverified GPU environment. Live failure diagnosis matched `COMMAND_NOT_FOUND_OR_MODULE` with exact evidence in 3196 ms. Sanitized evidence is recorded in `results/results_asu_docs_live_acceptance_20260903.json`. Browser breakpoint QA, repeated final-demo runs, and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.
+On 2026-09-03, the local suite passed 121/121 tests, including documentation retrieval, feedback sanitization, contextual tool guidance, UI contracts, fixture generation, security boundaries, failure-evidence commands, triggered-rule validation, and inconclusive fallbacks. A 24-case mock diagnosis matrix passed 24/24 and is recorded without raw logs in `results/results_diagnosis_mock_acceptance_20260903.json`. JavaScript syntax checks, the deterministic mock demo, and `git diff --check` also passed. Live AIR previously recovered every supplied synthetic intake field, converted `2 hours` to `02:00:00`, accepted one sanitized outcome, and returned four relevant ASU RC Docs sources. Live generation passed deterministic validation, rendered an 18-line script, returned 15 exact-line explanations and six contextual ASU tools, and appropriately retained a review warning for an unverified GPU environment. Live failure diagnosis matched `COMMAND_NOT_FOUND_OR_MODULE` with exact evidence in 3196 ms. Sanitized evidence is recorded in `results/results_asu_docs_live_acceptance_20260903.json`. The expanded 24-case diagnosis matrix still requires a fresh live-server run. Browser breakpoint QA and a recorded backup demo remain manual acceptance tasks; they are not claimed as complete.

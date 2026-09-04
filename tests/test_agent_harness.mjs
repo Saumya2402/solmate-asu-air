@@ -425,3 +425,23 @@ test("diagnosis falls back to verified findings when AIR cites altered evidence"
   assert.equal(result.diagnosisValidation.fallback, "deterministic");
   assert.equal(result.agent.model, "test");
 });
+
+test("diagnosis rejects an AIR rule that did not trigger and uses the verified category", async () => {
+  const gateway = { async chat() { return { model: "test", latencyMs: 4, content: JSON.stringify({ category: "INVALID_PARTITION_OR_QOS_OR_CONSTRAINT", confidence: "probable", ruleId: "slurm-invalid-feature", evidence: [{ lineNumber: 1, text: "sbatch: error: This does not look like a batch script" }], explanation: "Invalid feature.", alternatives: [], missingEvidence: [], recommendations: ["Check the queue."], patch: null }) }; } };
+  const rules = [
+    { id: "slurm-script-format", cluster: "any", category: "SCRIPT_FORMAT_OR_SHEBANG", source: "https://docs.rc.asu.edu/slurm-sbatch/" },
+    { id: "slurm-invalid-feature", cluster: "any", category: "INVALID_PARTITION_OR_QOS_OR_CONSTRAINT", source: "https://docs.rc.asu.edu/slurm-sbatch/" },
+  ];
+  const result = await new AgentHarness({ gateway }).diagnose({ cluster: "sol", log: "sbatch: error: This does not look like a batch script", rules });
+  assert.equal(result.diagnosis.category, "SCRIPT_FORMAT_OR_SHEBANG");
+  assert.equal(result.diagnosisValidation.airAccepted, false);
+  assert.equal(result.disposition.id, "user_action");
+});
+
+test("diagnosis returns a controlled inconclusive fallback for invalid AIR output", async () => {
+  const gateway = { async chat() { return { model: "test", content: JSON.stringify({ category: "UNKNOWN", confidence: "inconclusive", ruleId: null, evidence: [{ lineNumber: 1, text: "altered line" }], explanation: "Unknown.", alternatives: [], missingEvidence: [], recommendations: [], patch: null }) }; } };
+  const result = await new AgentHarness({ gateway }).diagnose({ cluster: "sol", log: "Application exited unexpectedly", metadata: { State: "FAILED" }, rules: [] });
+  assert.equal(result.diagnosis.category, "UNKNOWN");
+  assert.equal(result.diagnosis.evidence[0].text, "Application exited unexpectedly");
+  assert.equal(result.diagnosisValidation.fallback, "deterministic");
+});

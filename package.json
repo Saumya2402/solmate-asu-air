@@ -14,6 +14,7 @@
     "benchmark:role-suite": "node scripts/role_suite_benchmark.mjs",
     "demo:mock": "node scripts/demo_run.mjs --mock",
     "demo:live": "node scripts/demo_run.mjs",
+    "validate:diagnosis": "node scripts/diagnosis_acceptance.mjs",
     "probe:openfoam:live": "node scripts/openfoam_probe.mjs",
     "review:state:live": "node scripts/source_review_probe.mjs",
     "review:remediation:live": "node scripts/remediation_review.mjs",

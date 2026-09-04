@@ -52,9 +52,22 @@ test("HTTP API exposes health, intake, generation, handoff, and diagnosis", asyn
   assert.equal((await acknowledgedResponse.json()).steps.some((step) => step.id === "submit"), true);
   const changedResponse = await post("/api/handoff", { asurite: "ssaum", localPath: "C:\\work\\image-training.slurm", remoteDirectory: "/scratch/ssaum/other", filename: "image-training.slurm", acknowledged: true, acknowledgementToken: handoffPayload.acknowledgementToken });
   assert.equal(changedResponse.status, 400);
+  const evidenceResponse = await post("/api/failure-evidence", { phase: "finished", jobId: "12345678" });
+  assert.equal(evidenceResponse.status, 200);
+  const evidencePayload = await evidenceResponse.json();
+  assert.ok(evidencePayload.commands.some((item) => item.command.startsWith("sacct --jobs=12345678")));
   const diagnosisResponse = await post("/api/diagnose", { cluster: "sol", log: "slurmstepd: error: Detected oom_kill event", metadata: { State: "OUT_OF_MEMORY" } });
   assert.equal(diagnosisResponse.status, 200);
   assert.equal((await diagnosisResponse.json()).diagnosis.confidence, "confirmed");
+});
+
+test("failure-evidence API rejects shell injection in a job ID", async (context) => {
+  const { server } = createAppServer({ mode: "mock", gateway: new MockGateway() });
+  server.listen(0, "127.0.0.1"); await once(server, "listening"); context.after(() => server.close());
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/failure-evidence`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phase: "finished", jobId: "123; whoami" }),
+  });
+  assert.equal(response.status, 400);
 });
 
 test("HTTP API rejects missing JSON content type", async (context) => {

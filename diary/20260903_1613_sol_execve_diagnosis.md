@@ -7,7 +7,7 @@ Validate the failure-diagnosis workflow against a real, sanitized Sol job record
 ## Real cluster evidence
 
 - `sbatch --test-only` accepted the submitted script.
-- Sol job `62520981` finished in five seconds with state `FAILED` and exit code `2:0`.
+- The sanitized Sol validation job finished in five seconds with state `FAILED` and exit code `2:0`; its identifier is not retained.
 - The error log reported `execve(): bash: No such file or directory` followed by an `srun` exit-code message.
 - The failure occurred before the intentionally invalid application command ran. With `--export=NONE`, the relative `bash` executable was unavailable to `srun`; an absolute `/bin/bash` path is the appropriate next controlled test.
 

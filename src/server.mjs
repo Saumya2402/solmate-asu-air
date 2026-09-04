@@ -12,6 +12,7 @@ import { asuRules as knowledge, schedulerUiKnowledge } from "./knowledge.mjs";
 import { sanitizeOutcomeHistory } from "./outcome_feedback.mjs";
 import { issueRecommendationToken, readRecommendationValues, verifyRecommendationConfirmations } from "./recommendation_token.mjs";
 import { issueHandoffToken, verifyHandoffAcknowledgement } from "./handoff_token.mjs";
+import { buildFailureEvidenceGuide } from "./failure_evidence.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(currentDir, "../public");
@@ -67,6 +68,10 @@ export function createAppServer({ mode = process.env.AIR_MODE || (process.env.OP
         const result = buildSolHandoff(body);
         const acknowledgementToken = result.valid && body.acknowledged !== true ? issueHandoffToken(body, handoffSecret) : null;
         return sendJson(response, result.valid ? 200 : 422, { ...result, acknowledgementToken });
+      }
+      if (request.method === "POST" && url.pathname === "/api/failure-evidence") {
+        const body = await readJsonBody(request, 2_000);
+        return sendJson(response, 200, buildFailureEvidenceGuide(body));
       }
       if (request.method === "POST" && url.pathname === "/api/diagnose") {
         const body = await readJsonBody(request, 45_000);

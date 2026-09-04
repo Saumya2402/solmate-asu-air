@@ -692,6 +692,34 @@ $("#useGeneratedEvidenceButton").addEventListener("click", () => {
   $("#diagnosisError").textContent = "Generated script attached; add the real failure log and scheduler metadata.";
 });
 
+$("#failurePhase").addEventListener("change", () => {
+  const submission = $("#failurePhase").value === "submission";
+  $("#failureJobId").disabled = submission;
+  if (submission) $("#failureJobId").value = "";
+  $("#evidenceGuideResult").hidden = true;
+});
+
+$("#buildEvidenceButton").addEventListener("click", async () => {
+  const button = $("#buildEvidenceButton");
+  setBusy(button, true, "Building commands...");
+  $("#diagnosisError").textContent = "";
+  try {
+    const payload = await api("/api/failure-evidence", { phase: $("#failurePhase").value, jobId: $("#failureJobId").value });
+    $("#evidenceGuideNotice").textContent = payload.notice;
+    $("#evidenceCommands").replaceChildren(...payload.commands.map((step) => {
+      const item = document.createElement("li");
+      const label = document.createElement("strong"); label.textContent = step.label;
+      const code = document.createElement("code"); code.textContent = step.command;
+      const copy = document.createElement("button"); copy.type = "button"; copy.className = "secondary"; copy.textContent = "Copy";
+      copy.addEventListener("click", () => copyText(step.command, copy));
+      item.append(label, code, copy);
+      return item;
+    }));
+    $("#evidenceGuideResult").hidden = false;
+  } catch (error) { $("#diagnosisError").textContent = error.message; }
+  finally { setBusy(button, false, "Build evidence commands"); }
+});
+
 $("#diagnosisForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = $("#diagnoseButton");
@@ -712,15 +740,18 @@ function renderDiagnosis(payload) {
   $("#diagnosisResult").hidden = false;
   $("#confidenceBadge").textContent = payload.diagnosis.confidence;
   $("#categoryBadge").textContent = payload.diagnosis.category.replaceAll("_", " ");
+  $("#dispositionLabel").textContent = payload.disposition?.label || "Review required";
+  $("#dispositionDetail").textContent = payload.disposition?.detail || "Review the evidence before changing or resubmitting the job.";
+  $("#dispositionLink").hidden = payload.disposition?.id !== "support";
   $("#diagnosisExplanation").textContent = payload.diagnosis.explanation;
   const validationLabel = payload.diagnosisValidation?.airAccepted === false
     ? "AIR response rejected; verified checks shown"
     : "AIR evidence validated";
   $("#diagnosisAgent").textContent = `Diagnostician: ${payload.agent.model} | ${payload.agent.latencyMs ?? "n/a"} ms | ${validationLabel}`;
   renderList($("#evidenceList"), payload.diagnosis.evidence.map((item) => item.source === "metadata" ? `${item.field}: ${item.text}` : `Line ${item.lineNumber}: ${item.text}`));
-  renderList($("#deterministicFindings"), payload.deterministicFindings.map((item) => `${item.confidence}: ${item.explanation}`));
-  renderList($("#diagnosisAlternatives"), payload.diagnosis.alternatives || []);
-  renderList($("#missingEvidence"), payload.diagnosis.missingEvidence || []);
+  renderOptionalList($("#deterministicFindings"), payload.deterministicFindings.map((item) => `${item.confidence}: ${item.explanation}`));
+  renderOptionalList($("#diagnosisAlternatives"), payload.diagnosis.alternatives || []);
+  renderOptionalList($("#missingEvidence"), payload.diagnosis.missingEvidence || []);
   renderList($("#diagnosisRecommendations"), payload.diagnosis.recommendations);
   const ruleSources = payload.applicableRules.map((rule) => ({ title: rule.id + ": " + rule.category, url: rule.source }));
   renderSourceLinks($("#diagnosisSources"), [...ruleSources, ...(payload.knowledgeSources || [])]);
@@ -742,6 +773,10 @@ async function api(url, body, { signal } = {}) {
 
 function renderList(container, items) {
   container.replaceChildren(...items.map((text) => { const item = document.createElement("li"); item.textContent = text; return item; }));
+}
+function renderOptionalList(container, items) {
+  renderList(container, items);
+  container.closest(".evidence-block").hidden = items.length === 0;
 }
 function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
 function formatValue(value) { return Array.isArray(value) ? (value.length ? value.join(", ") : "none") : String(value); }

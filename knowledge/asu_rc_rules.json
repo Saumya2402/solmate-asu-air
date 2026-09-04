@@ -76,6 +76,27 @@
       "url": "https://docs.rc.asu.edu/python-example/",
       "topics": ["python", "pip", "mamba", "environment", "jupyter", "tensorflow", "pytorch"],
       "summary": "Shows the ASU workflow for mamba environments and states that pip should be used only inside an activated mamba environment."
+    },
+    {
+      "id": "slurm-accounts",
+      "title": "Slurm Accounts",
+      "url": "https://docs.rc.asu.edu/slurm-accounts",
+      "topics": ["account", "accounts", "allocation", "qos", "myaccounts", "invalid account", "access"],
+      "summary": "Explains how Slurm accounts and QoS access work together and how researchers can inspect their available combinations."
+    },
+    {
+      "id": "scratch-storage",
+      "title": "Scratch File System",
+      "url": "https://docs.rc.asu.edu/scratch/",
+      "topics": ["scratch", "storage", "quota", "disk", "space", "filesystem", "myquota"],
+      "summary": "Explains temporary scratch storage, capacity guidance, retention limits, and when to contact Research Computing about storage needs."
+    },
+    {
+      "id": "get-help",
+      "title": "Get Help",
+      "url": "https://docs.rc.asu.edu/contact-us/",
+      "topics": ["support", "help", "infrastructure", "maintenance", "ticket", "office hours", "slack"],
+      "summary": "Lists Research Computing support requests, the RC support channel, and office hours for issues that need staff assistance."
     }
   ],
   "productGuardrails": {
@@ -176,6 +197,26 @@
   ],
   "diagnosisRules": [
     {
+      "id": "slurm-script-format",
+      "cluster": "any",
+      "category": "SCRIPT_FORMAT_OR_SHEBANG",
+      "requiresCorroboration": false,
+      "triggers": ["This does not look like a batch script", "first line must start with #!"],
+      "corroboration": [],
+      "exclusions": ["Do not submit until sbatch --test-only accepts the file"],
+      "source": "https://docs.rc.asu.edu/slurm-sbatch/"
+    },
+    {
+      "id": "slurm-account-qos",
+      "cluster": "any",
+      "category": "ACCOUNT_OR_QOS_ACCESS",
+      "requiresCorroboration": false,
+      "triggers": ["Invalid account or account/partition combination", "Invalid qos specification", "violates accounting/QOS policy"],
+      "corroboration": ["myaccounts output"],
+      "exclusions": ["Do not invent or infer account entitlement"],
+      "source": "https://docs.rc.asu.edu/slurm-accounts"
+    },
+    {
       "id": "slurm-oom",
       "cluster": "any",
       "category": "OUT_OF_MEMORY",
@@ -216,6 +257,46 @@
       "source": "https://docs.rc.asu.edu/slurm-sbatch/"
     },
     {
+      "id": "slurm-application-dependency",
+      "cluster": "any",
+      "category": "APPLICATION_DEPENDENCY",
+      "requiresCorroboration": false,
+      "triggers": ["ModuleNotFoundError", "No module named", "ImportError"],
+      "corroboration": ["Batch-script module loads or activated environment"],
+      "exclusions": ["Do not invent a module or environment name"],
+      "source": "https://docs.rc.asu.edu/python-example/"
+    },
+    {
+      "id": "slurm-permission",
+      "cluster": "any",
+      "category": "FILE_OR_EXECUTION_PERMISSION",
+      "requiresCorroboration": false,
+      "triggers": ["Permission denied", "cannot execute"],
+      "corroboration": ["Exit code 126 may support but cannot prove this category alone"],
+      "exclusions": ["Do not change file permissions automatically"],
+      "source": "https://docs.rc.asu.edu/slurm-sbatch/"
+    },
+    {
+      "id": "slurm-storage",
+      "cluster": "any",
+      "category": "STORAGE_OR_QUOTA",
+      "requiresCorroboration": true,
+      "triggers": ["Disk quota exceeded", "No space left on device"],
+      "corroboration": ["myquota output and target filesystem"],
+      "exclusions": ["Do not delete or move researcher data automatically"],
+      "source": "https://docs.rc.asu.edu/scratch/"
+    },
+    {
+      "id": "slurm-application-signal",
+      "cluster": "any",
+      "category": "APPLICATION_OR_SIGNAL",
+      "requiresCorroboration": true,
+      "triggers": ["Segmentation fault", "SIGSEGV", "Killed by signal", "terminated by signal"],
+      "corroboration": ["Application traceback, Slurm state, and exit code"],
+      "exclusions": ["Do not infer memory exhaustion from a signal alone"],
+      "source": "https://docs.rc.asu.edu/slurm-sbatch/"
+    },
+    {
       "id": "slurm-pending",
       "cluster": "any",
       "category": "PENDING_NOT_FAILED",
@@ -223,6 +304,26 @@
       "triggers": ["Priority", "Resources", "QOSMax", "ReqNodeNotAvail"],
       "corroboration": ["State=PENDING"],
       "exclusions": ["Do not describe pending work as a failed job"],
+      "source": "https://docs.rc.asu.edu/jobstates/"
+    },
+    {
+      "id": "slurm-running",
+      "cluster": "any",
+      "category": "RUNNING_NOT_FAILED",
+      "requiresCorroboration": false,
+      "triggers": ["State=RUNNING"],
+      "corroboration": ["State=RUNNING"],
+      "exclusions": ["Do not use seff or sacct efficiency as final evidence while running"],
+      "source": "https://docs.rc.asu.edu/job-statistics/"
+    },
+    {
+      "id": "slurm-completed",
+      "cluster": "any",
+      "category": "COMPLETED_SUCCESS",
+      "requiresCorroboration": false,
+      "triggers": ["State=COMPLETED and ExitCode=0:0"],
+      "corroboration": ["State=COMPLETED", "ExitCode=0:0"],
+      "exclusions": ["Scientific correctness is not established by scheduler completion"],
       "source": "https://docs.rc.asu.edu/jobstates/"
     },
     {

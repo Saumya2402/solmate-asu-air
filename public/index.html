@@ -148,11 +148,23 @@
         <form id="diagnosisForm" class="column">
           <div class="section-title"><span>01</span><div><h2>Supply failure evidence</h2><p>Exact lines and metadata keep the diagnosis auditable.</p></div></div>
           <label>Cluster<select name="cluster"><option value="sol">Sol</option><option value="phoenix">Phoenix</option><option value="unknown">Unknown</option></select></label>
+          <details class="compact-details evidence-helper">
+            <summary>Collect evidence from Sol or Phoenix</summary>
+            <div class="field-grid">
+              <label>Job stage<select id="failurePhase"><option value="submission">Rejected before submission</option><option value="pending">Pending</option><option value="running">Running</option><option value="finished" selected>Completed or failed</option></select></label>
+              <label>Job ID<input id="failureJobId" inputmode="numeric" pattern="[0-9]{1,20}" maxlength="20" placeholder="12345678" autocomplete="off"></label>
+            </div>
+            <button id="buildEvidenceButton" class="secondary" type="button">Build evidence commands</button>
+            <div id="evidenceGuideResult" hidden>
+              <p id="evidenceGuideNotice" class="muted"></p>
+              <ul id="evidenceCommands" class="command-list compact-commands"></ul>
+            </div>
+          </details>
           <label>Slurm script<textarea name="script" class="small" placeholder="#!/usr/bin/env bash"></textarea></label>
           <button id="useGeneratedEvidenceButton" class="secondary" type="button" disabled>Use generated SolMate script</button>
-          <label>Job log<textarea name="log" required maxlength="20000">slurmstepd: error: Detected 1 oom_kill event in StepId=42.batch</textarea></label>
+          <label>Job log or command output<textarea name="log" required maxlength="20000" placeholder="Paste the sbatch error, stderr, myjobs, seff, or sacct output here."></textarea></label>
           <div class="field-grid">
-            <label>State<input name="State" placeholder="OUT_OF_MEMORY"></label>
+            <label>Scheduler state<select name="State"><option value="">Not provided</option><option value="PENDING">Pending (waiting)</option><option value="RUNNING">Running</option><option value="COMPLETED">Completed successfully</option><option value="FAILED">Failed</option><option value="OUT_OF_MEMORY">Out of memory</option><option value="TIMEOUT">Time limit reached</option><option value="NODE_FAIL">Node failure</option><option value="CANCELLED">Cancelled</option></select></label>
             <label>Exit code<input name="ExitCode" placeholder="125:0"></label>
             <label>Requested memory<input name="ReqMem" placeholder="32G"></label>
             <label>Maximum RSS<input name="MaxRSS" placeholder="32G"></label>
@@ -168,6 +180,7 @@
           <div id="diagnosisEmpty" class="empty-state">Awaiting job evidence</div>
           <div id="diagnosisResult" hidden>
             <div class="toolbar"><span id="confidenceBadge" class="badge"></span><span id="categoryBadge" class="badge neutral"></span></div>
+            <div id="dispositionBanner" class="disposition"><strong id="dispositionLabel"></strong><span id="dispositionDetail"></span><a id="dispositionLink" href="https://docs.rc.asu.edu/contact-us/" target="_blank" rel="noreferrer" hidden>Research Computing help options</a></div>
             <h3 id="diagnosisExplanation"></h3>
             <div class="evidence-block"><h3>Cited evidence</h3><ol id="evidenceList"></ol></div>
             <div class="evidence-block"><h3>Deterministic checks</h3><ul id="deterministicFindings"></ul></div>

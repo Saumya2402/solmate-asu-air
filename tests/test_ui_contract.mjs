@@ -15,6 +15,14 @@ test("UI exposes complete diagnosis metadata and repair comparison", () => {
   for (const field of ["Reason", "Elapsed", "AllocTRES"]) assert.match(html, new RegExp(`name="${field}"`));
   for (const id of ["deterministicFindings", "diagnosisAlternatives", "missingEvidence", "diagnosisSources", "repairComparison"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(app, /originalSpec/);
+  assert.match(html, /<option value="OUT_OF_MEMORY">Out of memory<\/option>/);
+  assert.doesNotMatch(html, /Detected 1 oom_kill event/);
+});
+
+test("UI provides compact failure evidence collection without sending the job ID to diagnosis", () => {
+  for (const id of ["failurePhase", "failureJobId", "buildEvidenceButton", "evidenceCommands", "dispositionBanner"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(app, /api\("\/api\/failure-evidence"/);
+  assert.match(app, /api\("\/api\/diagnose", \{ cluster: data\.cluster, script: data\.script, log: data\.log, metadata, originalSpec \}\)/);
 });
 
 test("UI discloses whether the AIR diagnosis passed evidence validation", () => {
